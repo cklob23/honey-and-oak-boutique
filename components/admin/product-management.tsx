@@ -131,29 +131,38 @@ export function ProductManagement() {
       </div>
 
       {/* Products Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
         {loading ? (
           <p className="text-muted-foreground text-sm">Loading products...</p>)
           : (filteredProducts.map((product: Product) => (
             <Card key={product._id} className="group bg-card rounded-xl overflow-hidden hover:shadow-lg transition-shadow duration-300 cursor-pointer">
-              <div className="relative bg-muted overflow-hidden aspect-[3/4]">
+              <div className="relative bg-muted overflow-hidden aspect-[2/3]">
                 <img
                   src={product.images?.[0]?.url || "/placeholder.svg?height=300&width=300&query=clothing"}
                   alt={product.name}
                   className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                 />
               </div>
-              <CardHeader>
-                <CardTitle className="text-lg">{product.name}</CardTitle>
-                <div className="flex gap-2 mt-2">
-                  <Badge variant="outline">{product.category[0].toUpperCase()}{product.category.substring(1)}</Badge>
-                  <Badge variant="outline">{product.colors?.length || 0} Colors</Badge>
+              <CardHeader className="p-3">
+                <CardTitle className="text-sm font-semibold leading-tight">
+                  {product.name}
+                </CardTitle>
+                <div className="flex flex-wrap gap-1 mt-1">
+                  <Badge variant="outline" className="text-xs px-2 py-0.5">
+                    {product.category[0].toUpperCase()}
+                    {product.category.substring(1)}
+                  </Badge>
+
+                  <Badge variant="outline" className="text-xs px-2 py-0.5">
+                    {product.colors?.length || 0} colors
+                  </Badge>
+
                   {product.isSale && (
-                    <Badge variant="default">Sale Item</Badge>
+                    <Badge className="text-xs px-2 py-0.5">Sale</Badge>
                   )}
                 </div>
               </CardHeader>
-              <CardContent className="space-y-4">
+              <CardContent className="p-3 space-y-2">
                 <div className="space-y-2">
                   <p className="text-sm text-muted-foreground">
                     <strong>Price:</strong> ${product.price}
@@ -163,8 +172,8 @@ export function ProductManagement() {
                     <strong>Stock:</strong> {product.sizes?.reduce((sum, s) => sum + (s.stock || 0), 0) || 0} items
                   </p>
                 </div>
-                <div className="flex gap-2 pt-2 border-t">
-                  <Button variant="outline" size="sm" className="flex-1 gap-2 bg-transparent">
+                <div className="flex gap-2 pt-2 mt-2 border-t">
+                  <Button variant="outline" size="sm" className="flex-1 gap-1">
                     <Edit2 className="w-4 h-4" />
                     Edit
                   </Button>

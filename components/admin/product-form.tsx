@@ -279,6 +279,7 @@ export function ProductForm({ onClose, onSuccess }: ProductFormProps) {
             <div className="flex gap-6">
               <label className="flex items-center gap-2">
                 <input
+                  className="accent-foreground"
                   type="checkbox"
                   checked={formData.isSale}
                   onChange={(e) => updateField("isSale", e.target.checked)}
@@ -288,6 +289,7 @@ export function ProductForm({ onClose, onSuccess }: ProductFormProps) {
 
               <label className="flex items-center gap-2">
                 <input
+                  className="accent-foreground"
                   type="checkbox"
                   checked={formData.isNewArrival}
                   onChange={(e) =>
