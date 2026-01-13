@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input"
 import Link from "next/link"
 import { useCart } from "@/context/cart-context"
 import apiClient from "@/lib/api-client"
-import { CartItem } from "@/types"
+import { Cart, CartItem } from "@/types"
 import { ExpressCheckoutElement, useElements, useStripe } from "@stripe/react-stripe-js"
 import { Elements } from "@stripe/react-stripe-js"
 import { stripePromise } from "@/lib/stripe"
@@ -23,6 +23,7 @@ export function CartSidebar({ isOpen, onClose }: CartSidebarProps) {
     const cartId = typeof window !== "undefined" ? localStorage.getItem("cartId") : null
     const [customerId, setCustomerId] = useState<string | null>(null)
     const [cartItems, setCartItems] = useState<CartItem[]>([])
+    const [cart, setCart] = useState<Cart[]>([])
     const [loading, setLoading] = useState(false)
     const [clientSecret, setClientSecret] = useState<string | null>(null)
 
@@ -71,6 +72,7 @@ export function CartSidebar({ isOpen, onClose }: CartSidebarProps) {
             setLoading(true)
             try {
                 const response = await apiClient.get(`/cart/${cartId}`)
+                setCart(response.data)
                 setCartItems(response.data?.items || [])
             } catch (error: any) {
                 if (error.response?.status === 404) {
@@ -84,16 +86,33 @@ export function CartSidebar({ isOpen, onClose }: CartSidebarProps) {
         fetchCart()
     }, [cartId, cartCount])
 
+    const subtotal = cartItems.reduce(
+        (sum, item) => sum + item.price * item.quantity,
+        0
+    )
+
+    const shipping = subtotal > 100 ? 0 : 10
+    const total = subtotal + shipping
+
+    const totalCents = Math.round(total * 100)
+    const isStripeEligible = totalCents >= 50
+
+
     useEffect(() => {
         if (!cartId || !customerId) return
+        if (!isStripeEligible) {
+            setClientSecret(null)
+            return
+        }
 
         const createCheckoutIntent = async () => {
             try {
-                const response = await apiClient.post("/checkout", {
+                const response = await apiClient.post("/checkout/preview", {
                     cartId,
                     customerId,
+                    amountOverride: totalCents, // safe ≥ 50
                 })
-                console.log(response.data.clientSecret)
+
                 setClientSecret(response.data.clientSecret)
             } catch (err) {
                 console.error("Failed to start checkout", err)
@@ -102,19 +121,16 @@ export function CartSidebar({ isOpen, onClose }: CartSidebarProps) {
         }
 
         createCheckoutIntent()
-    }, [cartId, customerId])
+    }, [cartId, customerId, totalCents, isStripeEligible])
 
-    if (loading || !clientSecret) {
+    if (loading) {
         return (
             <div className="min-h-screen flex items-center justify-center">
-                Loading checkout…
+                Loading cart…
             </div>
         )
     }
 
-    const subtotal = cartItems.reduce((sum, item) => sum + item.price * item.quantity, 0)
-    const shipping = subtotal > 100 ? 0 : 10
-    const total = subtotal + shipping
 
     return (
         <>
@@ -225,17 +241,22 @@ export function CartSidebar({ isOpen, onClose }: CartSidebarProps) {
                                 </Button>
                             </Link>
                             <div className="space-y-4">
-                                <Elements
-                                    stripe={stripePromise}
-                                    options={{
-                                        clientSecret,
-                                        appearance: { theme: "stripe" },
-                                    }}
-                                >
-                                    <ExpressCheckout clientSecret={clientSecret} />
-                                </Elements>
+                                {clientSecret && isStripeEligible ? (
+                                    <Elements
+                                        stripe={stripePromise}
+                                        options={{
+                                            clientSecret,
+                                            appearance: { theme: "stripe" },
+                                        }}
+                                    >
+                                        <ExpressCheckout clientSecret={clientSecret} />
+                                    </Elements>
+                                ) : (
+                                    <p className="text-xs text-muted-foreground text-center">
+                                        Express checkout available at checkout
+                                    </p>
+                                )}
                             </div>
-
                         </div>
                     </div>
                 </div>

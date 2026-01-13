@@ -52,7 +52,7 @@ export function Sidebar({ activeView, onViewChange }: SidebarProps) {
       </nav>
 
       <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-sidebar-border bg-sidebar">
-        <Link href="/" className="text-sm text-sidebar-foreground hover:underline">
+        <Link href="/shop" className="text-sm text-sidebar-foreground hover:underline">
           Back to Store
         </Link>
       </div>

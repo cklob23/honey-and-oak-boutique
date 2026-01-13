@@ -67,14 +67,26 @@ export function ProductManagement() {
   /* ----------------------------------
      Filtering
   ---------------------------------- */
-  const filteredProducts =
+  const normalizedSearch = searchTerm.trim().toLowerCase()
+
+  const baseProducts =
     category === "sale"
       ? saleItems
-      : products.filter(
-          (product) =>
-            product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            product.category.toLowerCase().includes(searchTerm.toLowerCase()),
-        )
+      : category === "all"
+        ? products
+        : products.filter((p) => p.category === category)
+
+  const filteredProducts = baseProducts.filter((product) => {
+    if (!normalizedSearch) return true
+
+    return (
+      product.name?.toLowerCase().includes(normalizedSearch) ||
+      product.description?.toLowerCase().includes(normalizedSearch)
+    )
+  })
+
+  console.log(products.map(p => p.sku))
+
 
   /* ----------------------------------
      Delete product (instant update)
@@ -85,7 +97,7 @@ export function ProductManagement() {
     try {
       await apiClient.delete(`/products/${productId}`)
 
-      // 🔥 Instantly update UI
+      // Instantly update UI
       setProducts((prev) => prev.filter((p) => p._id !== productId))
       setSaleItems((prev) => prev.filter((p) => p._id !== productId))
     } catch (error) {
@@ -177,16 +189,17 @@ export function ProductManagement() {
           filteredProducts.map((product) => (
             <Card
               key={product._id}
-              className="group rounded-xl overflow-hidden hover:shadow-lg transition"
-            >
-              <div className="relative bg-muted aspect-[2/3]">
+              className="group flex flex-col h-full bg-card rounded-xl overflow-hidden hover:shadow-lg transitions transition-shadow">
+              <div className="relative w-full aspect-[2/3] bg-muted overflow-hidden rounded-lg">
                 <img
                   src={product.images?.[0]?.url || "/placeholder.svg"}
                   alt={product.name}
-                  className="w-full h-full object-cover group-hover:scale-105 transition-transform"
+                  className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                  onError={(e) => {
+                    e.currentTarget.src = "/placeholder.svg"
+                  }}
                 />
               </div>
-
               <CardHeader className="p-3">
                 <CardTitle className="text-sm">{product.name}</CardTitle>
                 <div className="flex flex-wrap gap-1 mt-1">
@@ -197,10 +210,14 @@ export function ProductManagement() {
                     {product.colors?.length || 0} colors
                   </Badge>
                   {product.isSale && <Badge className="text-xs">Sale</Badge>}
+                  <p className="ml-1 text-sm text-muted-foreground">
+                  <strong>SKU#:</strong>{" "}
+                  {product.sku}
+                </p>
                 </div>
               </CardHeader>
 
-              <CardContent className="p-3 space-y-2">
+              <CardContent className="p-3 flex flex-col justify-between flex-1">
                 <p className="text-sm text-muted-foreground">
                   <strong>Price:</strong> ${product.price}
                   {product.salePrice && (

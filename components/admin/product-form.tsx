@@ -25,6 +25,7 @@ export function ProductForm({ product, onClose, onSuccess }: ProductFormProps) {
   const isEdit = Boolean(product)
 
   const [formData, setFormData] = useState(() => ({
+    sku: product?.sku || "",
     name: product?.name || "",
     description: product?.description || "",
     category: product?.category || "tops",
@@ -101,7 +102,6 @@ export function ProductForm({ product, onClose, onSuccess }: ProductFormProps) {
                 {error}
               </div>
             )}
-
             {/* Name + Category */}
             <div className="grid grid-cols-2 gap-4">
               <Input
@@ -158,12 +158,19 @@ export function ProductForm({ product, onClose, onSuccess }: ProductFormProps) {
             </div>
 
             {/* Material */}
-            <Input
-              placeholder="Material (e.g. Linen)"
-              value={formData.material}
-              onChange={(e) => updateField("material", e.target.value)}
-            />
-
+            <div className="grid grid-cols-2 gap-4">
+              <Input
+                placeholder="SKU#"
+                value={formData.sku}
+                onChange={(e) => updateField("sku", e.target.value)}
+                required
+              />
+              <Input
+                placeholder="Material (e.g. Linen)"
+                value={formData.material}
+                onChange={(e) => updateField("material", e.target.value)}
+              />
+            </div>
             {/* Images */}
             <div>
               <p className="font-medium mb-2">Images</p>

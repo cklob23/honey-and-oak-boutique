@@ -19,6 +19,7 @@ export interface ProductSizeChart {
 
 export interface Product {
   _id: string
+  sku: string
   name: string
   description: string
   price: number
