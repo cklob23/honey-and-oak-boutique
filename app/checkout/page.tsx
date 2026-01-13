@@ -719,13 +719,6 @@ export default function CheckoutPage() {
                 </label>
               </div>
             </div>
-
-            <Button
-              //onClick={handleStripeCheckout}
-              className="w-full bg-[#C8A882] text-white hover:bg-[#B89872] h-14 text-base font-semibold cursor-pointer"
-            >
-              Pay now
-            </Button>
           </div>
 
           {/* Right Side - Order Summary (Sticky) */}
@@ -833,6 +826,12 @@ export default function CheckoutPage() {
                     <span>${total.toFixed(2)}</span>
                   </div>
                 </div>
+                <Button
+                  //onClick={handleStripeCheckout}
+                  className="w-full bg-[#C8A882] text-white hover:bg-[#B89872] h-12 text-base font-semibold cursor-pointer mt-2"
+                >
+                  Pay now
+                </Button>
               </div>
             </div>
           </div>
