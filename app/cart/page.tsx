@@ -319,7 +319,7 @@ export default function CartPage() {
               </div>
 
               {/* Checkout */}
-              <Button variant="outline" className="w-full mb-3">
+              {/* <Button variant="outline" className="w-full mb-3">
                 <span>Buy with</span>
 
                 <img
@@ -327,7 +327,7 @@ export default function CartPage() {
                   alt="Apple Pay"
                   className="h-4 w-auto object-contain"
                 />
-              </Button>
+              </Button> */}
               <Link href="/checkout">
                 <Button className="w-full bg-primary mb-3 text-primary-foreground hover:bg-primary/90">
                   Proceed to Checkout

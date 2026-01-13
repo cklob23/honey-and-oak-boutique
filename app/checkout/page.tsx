@@ -749,7 +749,7 @@ export default function CheckoutPage() {
                         {item.color} / {item.size}
                       </p>
 
-                      <div className="flex items-center gap-2 mt-2">
+                      {/* <div className="flex items-center gap-2 mt-2">
                         <button
                           onClick={() => updateQuantity(index, item.quantity - 1)}
                           className="px-2 py-1 hover:bg-muted"
@@ -765,7 +765,7 @@ export default function CheckoutPage() {
                         >
                           +
                         </button>
-                      </div>
+                      </div> */}
                     </div>
 
                     {/* Price + Trash (RIGHT SIDE) */}
@@ -773,13 +773,13 @@ export default function CheckoutPage() {
                       <span className="text-sm font-semibold">
                         ${item.price.toFixed(2)}
                       </span>
-
+                      {/* 
                       <button
                         onClick={() => removeItem(index)}
                         className="p-2 hover:bg-muted rounded-lg transition-colors text-muted-foreground hover:text-destructive"
                       >
                         <Trash2 className="w-4 h-4" />
-                      </button>
+                      </button> */}
                     </div>
                   </div>
                 ))}
@@ -828,9 +828,12 @@ export default function CheckoutPage() {
                 </div>
                 <Button
                   //onClick={handleStripeCheckout}
-                  className="w-full bg-[#C8A882] text-white hover:bg-[#B89872] h-12 text-base font-semibold cursor-pointer mt-2"
+                  className="w-full bg-[#C8A882] text-white hover:bg-[#B89872] h-10 text-base font-semibold cursor-pointer mt-2"
                 >
                   Pay now
+                </Button>
+                <Button variant="default" className="w-full h-10 text-base cursor-pointer" asChild>
+                  <Link href="/shop">Continue Shopping</Link>
                 </Button>
               </div>
             </div>
