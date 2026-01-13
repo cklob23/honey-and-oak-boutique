@@ -87,7 +87,6 @@ export default function ShopPage() {
       try {
         const response = await apiClient.get(`customers/${customerId}/favorites`)
         setFavorites(response.data)
-        console.log(response.data)
       } catch (error) {
         console.error("Error fetching favorites:", error)
       } finally {

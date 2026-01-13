@@ -11,14 +11,6 @@ import "./globals.css"
 const _geist = Geist({ subsets: ["latin"] })
 const _geistMono = Geist_Mono({ subsets: ["latin"] })
 
-const options = {
-    mode: 'payment',
-    amount: 1099,
-    currency: 'usd',
-    // Customizable with appearance API.
-    appearance: {/*...*/},
-  }
-
 export const metadata: Metadata = {
   title: "Honey & Oak Boutique",
   description:

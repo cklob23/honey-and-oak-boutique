@@ -9,6 +9,8 @@ import { useCart } from "@/context/cart-context"
 import apiClient from "@/lib/api-client"
 import { CartItem } from "@/types"
 import { ExpressCheckoutElement, useElements, useStripe } from "@stripe/react-stripe-js"
+import { Elements } from "@stripe/react-stripe-js"
+import { stripePromise } from "@/lib/stripe"
 
 interface CartSidebarProps {
     isOpen: boolean
@@ -19,11 +21,10 @@ export function CartSidebar({ isOpen, onClose }: CartSidebarProps) {
     const [discountCode, setDiscountCode] = useState("")
     const { cartCount, refreshCart } = useCart()
     const cartId = typeof window !== "undefined" ? localStorage.getItem("cartId") : null
+    const [customerId, setCustomerId] = useState<string | null>(null)
     const [cartItems, setCartItems] = useState<CartItem[]>([])
-    const stripe = useStripe()
-    const elements = useElements()
     const [loading, setLoading] = useState(false)
-    const [error, setError] = useState<string | null>(null)
+    const [clientSecret, setClientSecret] = useState<string | null>(null)
 
     // Update item quantity
     const updateQuantity = async (index: number, quantity: number) => {
@@ -55,6 +56,13 @@ export function CartSidebar({ isOpen, onClose }: CartSidebarProps) {
         }
     }
 
+    useEffect(() => {
+        const id = localStorage.getItem("customerId")
+        if (id) {
+            setCustomerId(id)
+        }
+    }, [])
+
     // Load cart
     useEffect(() => {
         if (!cartId) return
@@ -76,24 +84,32 @@ export function CartSidebar({ isOpen, onClose }: CartSidebarProps) {
         fetchCart()
     }, [cartId, cartCount])
 
-    const handleConfirm = async () => {
-        if (!stripe || !elements) return
+    useEffect(() => {
+        if (!cartId || !customerId) return
 
-        setLoading(true)
-        setError(null)
-
-        const { error } = await stripe.confirmPayment({
-            elements,
-            confirmParams: {
-                return_url: `${window.location.origin}/checkout/success`,
-            },
-        })
-
-        if (error) {
-            setError(error.message ?? "Payment failed")
+        const createCheckoutIntent = async () => {
+            try {
+                const response = await apiClient.post("/checkout", {
+                    cartId,
+                    customerId,
+                })
+                console.log(response.data.clientSecret)
+                setClientSecret(response.data.clientSecret)
+            } catch (err) {
+                console.error("Failed to start checkout", err)
+                setClientSecret(null)
+            }
         }
 
-        setLoading(false)
+        createCheckoutIntent()
+    }, [cartId, customerId])
+
+    if (loading || !clientSecret) {
+        return (
+            <div className="min-h-screen flex items-center justify-center">
+                Loading checkout…
+            </div>
+        )
     }
 
     const subtotal = cartItems.reduce((sum, item) => sum + item.price * item.quantity, 0)
@@ -209,33 +225,66 @@ export function CartSidebar({ isOpen, onClose }: CartSidebarProps) {
                                 </Button>
                             </Link>
                             <div className="space-y-4">
-                                <ExpressCheckoutElement
-                                    onConfirm={handleConfirm}
+                                <Elements
+                                    stripe={stripePromise}
                                     options={{
-                                        layout: {
-                                            maxColumns: 1,
-                                            maxRows: 5,
-                                            overflow: "auto",
-                                        },
-                                        buttonType: {
-                                            applePay: 'buy',
-                                            googlePay: 'buy',
-                                            paypal: 'buynow'
-                                        },
-                                        emailRequired: true
+                                        clientSecret,
+                                        appearance: { theme: "stripe" },
                                     }}
-
-                                />
-
-                                {error && (
-                                    <p className="text-sm text-red-600">{error}</p>
-                                )}
+                                >
+                                    <ExpressCheckout clientSecret={clientSecret} />
+                                </Elements>
                             </div>
 
                         </div>
                     </div>
                 </div>
             </div>
+        </>
+    )
+}
+
+function ExpressCheckout({ clientSecret }: { clientSecret: string }) {
+    const stripe = useStripe()
+    const elements = useElements()
+    const [loading, setLoading] = useState(false)
+    const [error, setError] = useState<string | null>(null)
+
+    const handleConfirm = async () => {
+        if (!stripe || !elements) return
+
+        setLoading(true)
+        setError(null)
+
+        const { error } = await stripe.confirmPayment({
+            elements,
+            confirmParams: {
+                return_url: `${window.location.origin}/checkout/success`,
+            },
+        })
+
+        if (error) {
+            setError(error.message ?? "Payment failed")
+        }
+
+        setLoading(false)
+    }
+
+    return (
+        <>
+            <ExpressCheckoutElement
+                onConfirm={handleConfirm}
+                options={{
+                    layout: {
+                        maxColumns: 1,
+                        maxRows: 5,
+                        overflow: "auto",
+                    },
+                    emailRequired: true,
+                }}
+            />
+
+            {error && <p className="text-sm text-red-600">{error}</p>}
         </>
     )
 }

@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation"
-import { stripe } from "@/lib/stripe"
+import { stripe } from "@/lib/stripe-server"
+
 
 const SuccessIcon = (
   <svg width="16" height="14" viewBox="0 0 16 14" fill="none">
