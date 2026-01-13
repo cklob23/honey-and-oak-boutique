@@ -18,7 +18,7 @@ export default function ExpressCheckout() {
     const { error } = await stripe.confirmPayment({
       elements,
       confirmParams: {
-        return_url: `${window.location.origin}/complete`,
+        return_url: `${window.location.origin}/checkout/success`,
       },
     })
 
@@ -39,7 +39,14 @@ export default function ExpressCheckout() {
             maxRows: 1,
             overflow: "auto",
           },
+          buttonType: {
+            applePay: 'buy',
+            googlePay: 'buy',
+            paypal: 'buynow'
+          },
+          emailRequired: true
         }}
+
       />
 
       {error && (
