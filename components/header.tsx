@@ -217,6 +217,9 @@ export function Header() {
           <Link href="/shop?category=accessories" className="block py-2 hover:text-accent">Accessories</Link>
           <Link href="/shop?category=self-care" className="block py-2 hover:text-accent">Self Care</Link>
           <Link href="/shop?category=sale" className="block py-2 hover:text-accent">Sale</Link>
+          {customer?.role === "admin" ? <Link href="/admin" className="hover:text-accent">
+            Admin Dashboard
+          </Link> : null}
         </nav>
       )}
     </header>
