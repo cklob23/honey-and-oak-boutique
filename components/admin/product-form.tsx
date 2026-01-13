@@ -13,32 +13,40 @@ import {
 } from "@/components/ui/select"
 import { X } from "lucide-react"
 import apiClient from "@/lib/api-client"
+import { Product } from "@/types"
 
 interface ProductFormProps {
+  product?: Product
   onClose: () => void
-  onSuccess: () => void
+  onSuccess: (updated?: Product) => void
 }
 
-export function ProductForm({ onClose, onSuccess }: ProductFormProps) {
-  const [formData, setFormData] = useState({
-    name: "",
-    description: "",
-    category: "tops",
-    price: "",
-    salePrice: "",
-    isSale: false,
-    isNewArrival: true,
-    material: "",
-    images: [{ url: "", alt: "" }],
-    colors: [{ name: "", hex: "#000000" }],
-    sizes: [
+export function ProductForm({ product, onClose, onSuccess }: ProductFormProps) {
+  const isEdit = Boolean(product)
+
+  const [formData, setFormData] = useState(() => ({
+    name: product?.name || "",
+    description: product?.description || "",
+    category: product?.category || "tops",
+    price: product?.price?.toString() || "",
+    salePrice: product?.salePrice?.toString() || "",
+    isSale: product?.isSale || false,
+    isNewArrival: product?.isNewArrival ?? true,
+    material: product?.material || "",
+    images: product?.images?.length
+      ? product.images
+      : [{ url: "", alt: "" }],
+    colors:
+      product?.colors?.map((c: string) => ({ name: c, hex: "#000000" })) ||
+      [{ name: "", hex: "#000000" }],
+    sizes: product?.sizes || [
       { size: "XS", stock: 0 },
       { size: "S", stock: 0 },
       { size: "M", stock: 0 },
       { size: "L", stock: 0 },
       { size: "XL", stock: 0 },
     ],
-  })
+  }))
 
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
@@ -53,22 +61,24 @@ export function ProductForm({ onClose, onSuccess }: ProductFormProps) {
     setError("")
 
     try {
-      await apiClient.post("/products", {
+      const payload = {
         ...formData,
         price: Number(formData.price),
         salePrice: formData.salePrice
           ? Number(formData.salePrice)
           : undefined,
-        colors: formData.colors
-          .map((c) => c.name)
-          .filter(Boolean),
-        images: formData.images.filter((img) => img.url),
-      })
+        colors: formData.colors.map(c => c.name).filter(Boolean),
+        images: formData.images.filter(img => img.url),
+      }
 
-      onSuccess()
+      const res = isEdit
+        ? await apiClient.put(`/products/${product?._id}`, payload)
+        : await apiClient.post("/products", payload)
+
+      onSuccess(res.data)
       onClose()
     } catch (err: any) {
-      setError(err.response?.data?.message || "Failed to create product")
+      setError(err.response?.data?.message || "Failed to save product")
     } finally {
       setLoading(false)
     }
@@ -303,7 +313,7 @@ export function ProductForm({ onClose, onSuccess }: ProductFormProps) {
             {/* Actions */}
             <div className="flex gap-3 pt-4 border-t">
               <Button type="submit" disabled={loading} className="flex-1">
-                {loading ? "Saving..." : "Create Product"}
+                {loading ? "Saving..." : isEdit ? "Update Product" : "Create Product"}
               </Button>
               <Button type="button" variant="outline" onClick={onClose}>
                 Cancel

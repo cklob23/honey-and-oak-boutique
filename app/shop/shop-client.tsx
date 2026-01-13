@@ -188,7 +188,7 @@ export default function ShopPage() {
         size: selectedSize,
         color: selectedColor,
       })
-      toast.success("Added item to cart successfully!")
+      //toast.success("Added item to cart successfully!")
       refreshCart()
       return response.data
 
@@ -209,7 +209,7 @@ export default function ShopPage() {
           size: selectedSize,
           color: selectedColor,
         })
-        toast.success("Added item to cart successfully!")
+        //toast.success("Added item to cart successfully!")
         refreshCart()
         return retry.data;
       }

@@ -105,7 +105,7 @@ export default function ProductPage() {
         size,
         color
       })
-      toast.success("Added item to cart successfully!")
+      //toast.success("Added item to cart successfully!")
       refreshCart()
       return reponse.data
 
@@ -127,7 +127,7 @@ export default function ProductPage() {
           size,
           color
         })
-        toast.success("Added item to cart successfully!")
+       // toast.success("Added item to cart successfully!")
         refreshCart()
         return retry.data
       }
