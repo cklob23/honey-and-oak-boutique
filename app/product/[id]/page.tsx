@@ -127,7 +127,7 @@ export default function ProductPage() {
           size,
           color
         })
-       // toast.success("Added item to cart successfully!")
+        // toast.success("Added item to cart successfully!")
         refreshCart()
         return retry.data
       }
@@ -166,7 +166,7 @@ export default function ProductPage() {
           <div className="space-y-4">
             <div className="bg-muted rounded-xl overflow-hidden aspect-[3/4]">
               <img
-                src={product.images?.[0].url || "/placeholder.svg"}
+                src={product.images?.[0]?.url || "/placeholder.svg"}
                 alt={product.name}
                 className="w-full h-full object-cover"
               />
@@ -267,7 +267,15 @@ export default function ProductPage() {
               </div>
 
               <div className="grid grid-cols-5 gap-2">
-                {product.sizes?.map(option => (
+                {product.category === "accessories" ? (<button
+                  onClick={() => setSelectedSize("L")}
+                  className={`py-2 border-2 rounded-lg ${selectedSize === "L"
+                    ? "border-accent bg-accent/10"
+                    : "border-border hover:border-accent"
+                    }`}
+                >
+                  One Size
+                </button>) : (product.sizes?.map(option => (
                   <button
                     key={option._id}
                     onClick={() => setSelectedSize(option.size)}
@@ -277,7 +285,7 @@ export default function ProductPage() {
                       }`}
                   >
                     {option.size}
-                  </button>
+                  </button>)
                 ))}
               </div>
 

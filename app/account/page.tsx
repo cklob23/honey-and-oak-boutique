@@ -259,7 +259,7 @@ export default function AccountPage() {
           </Link>
         </div>
         <h1 className="text-3xl font-bold">My Account</h1>
-        <p className="text-muted-foreground">Manage your profile, orders, and preferences</p>
+        <p className="text-muted-foreground">Manage your Honey & Oak profile, orders, and preferences</p>
 
 
         {/* ---------------------------------------- */}

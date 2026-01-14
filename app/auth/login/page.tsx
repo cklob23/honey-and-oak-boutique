@@ -33,7 +33,7 @@ export default function LoginPage() {
       localStorage.setItem("customerId", response.data.customer.customerId)
       localStorage.setItem("customerEmail", response.data.customer.email)
 
-      router.push("/account")
+      router.push("/shop")
     } catch (err: any) {
       setError(err.response?.data?.message || "Login failed")
     } finally {
@@ -49,11 +49,7 @@ export default function LoginPage() {
     // Redirect browser to backend Google OAuth route
     window.location.href = `${process.env.NEXT_PUBLIC_API_URL}/oauth/google`
   }
-
-  const handleShopLogin = () => {
-    window.location.href = `${process.env.NEXT_PUBLIC_API_URL}/oauth/shop`
-  }
-
+  
   return (
     <main className="min-h-screen bg-background flex flex-col">
       <Header />

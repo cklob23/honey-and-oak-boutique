@@ -41,7 +41,6 @@ export function ProductForm({ product, onClose, onSuccess }: ProductFormProps) {
       product?.colors?.map((c: string) => ({ name: c, hex: "#000000" })) ||
       [{ name: "", hex: "#000000" }],
     sizes: product?.sizes || [
-      { size: "XS", stock: 0 },
       { size: "S", stock: 0 },
       { size: "M", stock: 0 },
       { size: "L", stock: 0 },

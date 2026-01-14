@@ -90,13 +90,13 @@ export function CartSidebar({ isOpen, onClose }: CartSidebarProps) {
         (sum, item) => sum + item.price * item.quantity,
         0
     )
-
+    const taxRate = 0.07
+    const tax = subtotal * taxRate
     const shipping = subtotal > 100 ? 0 : 10
-    const total = subtotal + shipping
-
+    const total = subtotal + shipping + tax
     const totalCents = Math.round(total * 100)
     const isStripeEligible = totalCents >= 50
-
+    console.log(totalCents)
 
     useEffect(() => {
         if (!cartId || !customerId) return
@@ -108,9 +108,7 @@ export function CartSidebar({ isOpen, onClose }: CartSidebarProps) {
         const createCheckoutIntent = async () => {
             try {
                 const response = await apiClient.post("/checkout/preview", {
-                    cartId,
-                    customerId,
-                    amountOverride: totalCents, // safe ≥ 50
+                    cartId, totalCents
                 })
 
                 setClientSecret(response.data.clientSecret)
@@ -121,7 +119,7 @@ export function CartSidebar({ isOpen, onClose }: CartSidebarProps) {
         }
 
         createCheckoutIntent()
-    }, [cartId, customerId, totalCents, isStripeEligible])
+    }, [cartId, customerId, totalCents, isStripeEligible, cartItems])
 
     if (loading) {
         return (
@@ -226,6 +224,10 @@ export function CartSidebar({ isOpen, onClose }: CartSidebarProps) {
                                 <span className="text-muted-foreground">Shipping</span>
                                 <span className="font-medium">{shipping === 0 ? "FREE" : `$${shipping.toFixed(2)}`}</span>
                             </div>
+                            <div className="flex justify-between text-sm">
+                                <span className="text-muted-foreground">Estimated taxes</span>
+                                <span className="font-medium">${tax.toFixed(2)}</span>
+                            </div>
                             <div className="flex justify-between text-base font-bold pt-2 border-t border-border">
                                 <span>Estimated total</span>
                                 <span>${total.toFixed(2)}</span>
@@ -236,13 +238,14 @@ export function CartSidebar({ isOpen, onClose }: CartSidebarProps) {
                         {/* Action Buttons */}
                         <div className="space-y-2">
                             <Link href="/checkout" className="block">
-                                <Button className="w-full bg-foreground text-background hover:bg-foreground/90 h-12 font-semibold">
+                                <Button className="w-full bg-foreground text-background hover:bg-foreground/90 h-10 font-semibold">
                                     CHECK OUT
                                 </Button>
                             </Link>
                             <div className="space-y-4">
                                 {clientSecret && isStripeEligible ? (
                                     <Elements
+                                        key={clientSecret}
                                         stripe={stripePromise}
                                         options={{
                                             clientSecret,

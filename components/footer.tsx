@@ -1,6 +1,25 @@
+"use client"
+
+import apiClient from "@/lib/api-client"
+import { Customer } from "@/types"
 import Link from "next/link"
+import { useEffect, useState } from "react"
+
+
 
 export function Footer() {
+
+  const [customerId, setCustomerId] = useState<string | null>(null)
+  const [customer, setCustomer] = useState<Customer | null>(null)
+
+  useEffect(() => {
+    const id = localStorage.getItem("customerId")
+    if (id) {
+      apiClient.get(`/customers/${id}`).then(res => setCustomer(res.data))
+    }
+    setCustomerId(id)
+  }, [])
+
   return (
     <footer className="bg-foreground text-background py-12 md:py-16">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -14,15 +33,15 @@ export function Footer() {
           {/* Shop */}
           <div>
             <h4 className="font-semibold mb-4">Shop</h4>
-            <ul className="space-y-2 text-sm">
-              <li>
-                <Link href="/shop" className="hover:text-accent transition-colors">
-                  All Products
-                </Link>
-              </li>
+            <ul className="space-y-2 text-sm grid grid-cols-1 sm:grid-cols-2 lg:grid">
               <li>
                 <Link href="/shop?category=tops" className="hover:text-accent transition-colors">
                   Tops
+                </Link>
+              </li>
+              <li>
+                <Link href="/shop?category=accessories" className="hover:text-accent transition-colors">
+                  Accessories
                 </Link>
               </li>
               <li>
@@ -31,9 +50,29 @@ export function Footer() {
                 </Link>
               </li>
               <li>
+                <Link href="/shop?category=self-care" className="hover:text-accent">
+                  Self Care
+                </Link>
+              </li>
+              <li>
+                <Link href="/shop?category=dresses" className="hover:text-accent transition-colors">
+                  Dresses
+                </Link>
+              </li>
+              <li>
+                <Link href="/shop?category=sale" className="hover:text-accent">
+                  Sale
+                </Link>
+              </li>
+              <li>
                 <Link href="/gift-cards" className="hover:text-accent transition-colors">
                   Gift Cards
                 </Link>
+              </li>
+              <li>
+                {customer?.role === "admin" ? <Link href="/admin" className="hover:text-accent">
+                  Admin Dashboard
+                </Link> : null}
               </li>
             </ul>
           </div>

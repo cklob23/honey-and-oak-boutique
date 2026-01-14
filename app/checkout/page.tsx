@@ -35,6 +35,12 @@ export default function CheckoutPage() {
   const [loading, setLoading] = useState(false)
   const { refreshCart } = useCart()
   const [clientSecret, setClientSecret] = useState<string | null>(null)
+  const [guestEmail, setGuestEmail] = useState<string | null>(null)
+
+  const subtotal = cartItems.reduce((sum, item) => sum + item.price * item.quantity, 0)
+  const [shipping, setShipping] = useState(subtotal > 100 ? 0 : 10)
+  const tax = subtotal * 0.07
+  const total = subtotal + shipping + tax
 
 
   useEffect(() => {
@@ -65,24 +71,26 @@ export default function CheckoutPage() {
   }, [cartId])
 
   useEffect(() => {
-    if (!cartId || !customerId) return
+    if (!cartId) return
 
-    const createCheckoutIntent = async () => {
+    const createIntent = async () => {
+      setClientSecret(null)
+
       try {
-        const response = await apiClient.post("/checkout", {
+        const res = await apiClient.post("/checkout", {
           cartId,
-          customerId,
+          shipping,
+          email: guestEmail,
         })
-        console.log(response.data.clientSecret)
-        setClientSecret(response.data.clientSecret)
+
+        setClientSecret(res.data.clientSecret)
       } catch (err) {
-        console.error("Failed to start checkout", err)
-        setClientSecret(null)
+        console.error("Checkout intent error:", err)
       }
     }
 
-    createCheckoutIntent()
-  }, [cartId, customerId])
+    createIntent()
+  }, [cartId, shipping, subtotal])
 
   if (loading || !clientSecret) {
     return (
@@ -138,6 +146,13 @@ export default function CheckoutPage() {
     lng: -85.04309,
   }
 
+  const ensureGuestEmail = () => {
+    if (!customerId && !guestEmail) {
+      toast.error("Please enter your email address to continue checkout.")
+      return false
+    }
+    return true
+  }
 
 
   const getDistanceMiles = (
@@ -193,11 +208,6 @@ export default function CheckoutPage() {
     )
   }
 
-  const subtotal = cartItems.reduce((sum, item) => sum + item.price * item.quantity, 0)
-  const shipping = subtotal > 100 ? 0 : 10
-  const tax = subtotal * 0.07
-  const total = subtotal + shipping + tax
-
   return (
     <main className="min-h-screen bg-background">
       <Header />
@@ -208,13 +218,14 @@ export default function CheckoutPage() {
           <div className="space-y-6">
             <div>
               <Elements
+                key={clientSecret}
                 stripe={stripePromise}
                 options={{
                   clientSecret,
                   appearance: { theme: "stripe" },
                 }}
               >
-                <h2 className="text-sm font-semibold mb-3">Express checkout</h2>
+                <h2 className="font-semibold">Express checkout</h2>
                 <ExpressCheckout />
               </Elements>
             </div>
@@ -238,7 +249,14 @@ export default function CheckoutPage() {
                   </Link>
                 )}
               </div>
-              <Input type="email" placeholder="Email or mobile phone number" className="h-12" />
+              <Input
+                type="email"
+                placeholder="Email address"
+                className="h-12"
+                value={guestEmail ?? ""}
+                onChange={(e) => setGuestEmail(e.target.value)}
+                required
+              />
               <label className="flex items-center gap-2 mt-3">
                 <input type="checkbox" className="accent-foreground rounded" />
                 <span className="text-sm text-muted-foreground">Email me with news and offers</span>
@@ -263,7 +281,10 @@ export default function CheckoutPage() {
                     type="radio"
                     name="delivery"
                     checked={deliveryMethod === "ship"}
-                    onChange={() => setDeliveryMethod("ship")}
+                    onChange={() => {
+                      setDeliveryMethod("ship")
+                      setShipping(10)
+                    }}
                   />
                   <Package className="w-5 h-5" />
                   <span className="font-medium">Ship</span>
@@ -283,7 +304,10 @@ export default function CheckoutPage() {
                     type="radio"
                     name="delivery"
                     checked={deliveryMethod === "pickup"}
-                    onChange={() => setDeliveryMethod("pickup")}
+                    onChange={() => {
+                      setDeliveryMethod("pickup")
+                      setShipping(0)
+                    }}
                   />
                   <Package className="w-5 h-5" />
                   <span className="font-medium">Pick up</span>
@@ -809,7 +833,7 @@ export default function CheckoutPage() {
                     <Info className="w-3 h-3 text-muted-foreground" />
                   </div>
                   <span className="font-medium">
-                    ${shipping.toFixed(2)}
+                    {deliveryMethod === "pickup" ? "FREE" : `${shipping.toFixed(2)}`}
                   </span>
                 </div>
                 <div className="flex justify-between text-sm">
@@ -827,7 +851,10 @@ export default function CheckoutPage() {
                   </div>
                 </div>
                 <Button
-                  //onClick={handleStripeCheckout}
+                  onClick={() => {
+                    if (!ensureGuestEmail()) return
+                    // continue with card payment submission
+                  }}
                   className="w-full bg-[#C8A882] text-white hover:bg-[#B89872] h-10 text-base font-semibold cursor-pointer mt-2"
                 >
                   Pay now

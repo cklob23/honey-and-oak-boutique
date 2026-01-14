@@ -20,7 +20,7 @@ export function Hero() {
             </div>
             <div className="flex gap-4">
               <Link href="/shop">
-                <Button className="bg-primary text-primary-foreground hover:bg-primary/90">Explore New Arrivals</Button>
+                <Button className="bg-primary text-primary-foreground hover:bg-primary/90">New Arrivals</Button>
               </Link>
               <Link href="/gift-cards">
                 <Button variant="outline">View Gift Cards</Button>

@@ -35,7 +35,7 @@ export function Header() {
     localStorage.removeItem("customerEmail")
     localStorage.removeItem("authToken")
     setCustomerId(null)
-    router.push("/")
+    router.push("/shop")
   }
 
   // Close dropdown if clicked outside
@@ -85,7 +85,7 @@ export function Header() {
             </button>
 
             {clothingHover && (
-              <div className="absolute left-0 mt-1 bg-white border shadow-lg rounded-lg py-2 w-40 z-50">
+              <div className="absolute left-0 mr-3 bg-white border shadow-lg rounded-lg py-2 w-40 z-50">
                 <Link href="/shop?category=tops" className="block px-4 py-2 hover:bg-gray-100">
                   Tops
                 </Link>
