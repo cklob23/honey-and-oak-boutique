@@ -6,17 +6,18 @@ export interface CustomerAddress {
   country?: string
 }
 
-export type CustomerRole = "customer" | "admin"
-
 export interface CustomerPreferences {
-  sizes: {
-    tops: string[]
-    bottoms: string[]
-    sets: string[]
-    dresses: string[]
+  sizes?: {
+    tops?: string[]
+    bottoms?: string[]
+    sets?: string[]
+    dresses?: string[]
   }
-  colors: string[]
+  colors?: string[]
 }
+
+
+export type CustomerRole = "customer" | "admin"
 
 export interface Customer {
   _id?: string
@@ -37,11 +38,11 @@ export interface Customer {
   favorites: string[]
 
   preferences?: CustomerPreferences
-
+  authProvider?: String
   sessionToken?: string
   sessionExpiry?: Date
   lastPasswordReset?: Date
-  createdAt: Date
-  updatedAt: Date
+  createdAt: Date | String
+  updatedAt: Date | String
 }
 

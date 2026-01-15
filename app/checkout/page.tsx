@@ -91,8 +91,8 @@ export default function CheckoutPage() {
   ]
 
   const STORE_LOCATION = {
-    lat: 34.00413,
-    lng: -85.04309,
+    lat: 34.01129,
+    lng: -85.06825,
   }
 
   const getDistanceMiles = (
@@ -376,8 +376,9 @@ export default function CheckoutPage() {
         <div className="sticky top-24 border rounded-lg p-6 space-y-4">
           {cartItems.map((item, i) => (
             <div key={i} className="flex gap-3">
-              <img
-                src={item.image}
+                 <img
+                        src={item?.image || "/placeholder.svg"}
+                        alt={item.name}
                 className="w-16 h-20 rounded object-cover"
               />
               <div className="flex-1">

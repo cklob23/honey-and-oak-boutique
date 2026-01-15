@@ -9,12 +9,7 @@ export interface ProductImage {
 export interface ProductSize {
   size: string
   stock: number
-  _id?: string
-}
-
-export interface ProductSizeChart {
-  measurements: Record<string, any>   // e.g. { S: { bust: 34, length: 24 } }
-  image?: string
+  sku: number
 }
 
 export interface Product {
@@ -29,12 +24,20 @@ export interface Product {
   sizes: ProductSize[]
   colors: string[]
   material?: string
-  care?: string
-  rating: number
+  rating?: number
   reviews?: number
-  sizeChart?: ProductSizeChart
+  sizeChart?: {
+    measurements: any
+    image?: string
+  }
+  care?: string
   isNewArrival: boolean
   isSale: boolean
-  createdAt: string | Date
-  updatedAt: string | Date
+  createdAt: string
+  updatedAt: string
+}
+
+export interface ProductSizeChart {
+  measurements: Record<string, any>   // e.g. { S: { bust: 34, length: 24 } }
+  image?: string
 }

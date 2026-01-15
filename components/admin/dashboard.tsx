@@ -7,7 +7,7 @@ import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, R
 import { DollarSign, ShoppingCart, Package, Users } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import apiClient from "@/lib/api-client"
-import { Customer } from "@/types"
+import type { Customer } from "@/types"
 
 export function Dashboard() {
   const [salesReport, setSalesReport] = useState<any>(null)
@@ -24,15 +24,19 @@ export function Dashboard() {
   const [growth, setGrowth] = useState({
     current: 0,
     previous: 0,
-    rate: 0
-  });
+    rate: 0,
+  })
 
   useEffect(() => {
     const id = localStorage.getItem("customerId")
     if (id) {
       const getCustomer = async () => {
-        const response = await apiClient.get(`/customers/${id}`)
-        setCustomer(response.data)
+        try {
+          const response = await apiClient.get(`/customers/${id}`)
+          setCustomer(response.data)
+        } catch (error) {
+          console.error("Error fetching customer:", error)
+        }
       }
       getCustomer()
     }
@@ -66,14 +70,14 @@ export function Dashboard() {
     if (dateRange === "custom") return
 
     const today = new Date()
-    const days = parseInt(dateRange, 10)
+    const days = Number.parseInt(dateRange, 10)
 
     const start = new Date()
     start.setDate(today.getDate() - days)
 
     setStartDate(start.toISOString().substring(0, 10))
     setEndDate(today.toISOString().substring(0, 10))
-  }, [dateRange]);
+  }, [dateRange])
 
   useEffect(() => {
     if (!startDate || !endDate || customersReport?.length === 0) return
@@ -81,11 +85,9 @@ export function Dashboard() {
     const s = new Date(startDate)
     const e = new Date(endDate)
 
-    // Range length
     const ms = e.getTime() - s.getTime()
     const days = Math.ceil(ms / (1000 * 60 * 60 * 24))
 
-    // Previous period (same length)
     const prevEnd = new Date(s)
     prevEnd.setDate(s.getDate() - 1)
 
@@ -101,24 +103,21 @@ export function Dashboard() {
       current: currentCount,
       previous: previousCount,
       rate,
-    });
+    })
   }, [startDate, endDate, customersReport])
 
-  // Count customers whose createdAt is within a range
   const countCustomersInRange = (customers: any[], start: Date, end: Date) => {
     return customers?.filter((c) => {
       const created = new Date(c.createdAt)
       return created >= start && created <= end
     }).length
-  };
+  }
 
-  // Avoid divide-by-zero and compute growth %
   const calculateGrowthRate = (current: number, previous: number) => {
     if (previous === 0) return current > 0 ? 100 : 0
-
     const rate = ((current - previous) / previous) * 100
     return Number(rate.toFixed(1))
-  };
+  }
 
   const getTrendArrow = (rate: number) => {
     if (rate > 0) return "↑"
@@ -129,80 +128,65 @@ export function Dashboard() {
   const getTrendColor = (rate: number) => {
     if (rate > 0) return "text-green-600"
     if (rate < 0) return "text-red-600"
-    return "text-gray-400"
+    return "text-muted-foreground"
   }
 
-  const getDailyCustomerCounts = (customers: any[], days: number = 30) => {
-    const today = new Date();
-    const data = [];
+  const getDailyCustomerCounts = (customers: any[], days = 30) => {
+    const today = new Date()
+    const data = []
 
     for (let i = days - 1; i >= 0; i--) {
-      const day = new Date();
-      day.setDate(today.getDate() - i);
+      const day = new Date()
+      day.setDate(today.getDate() - i)
 
-      const start = new Date(day);
-      start.setHours(0, 0, 0, 0);
+      const start = new Date(day)
+      start.setHours(0, 0, 0, 0)
 
-      const end = new Date(day);
-      end.setHours(23, 59, 59, 999);
+      const end = new Date(day)
+      end.setHours(23, 59, 59, 999)
 
-      const count = customers?.filter(c => {
-        const created = new Date(c.createdAt);
-        return created >= start && created <= end;
-      }).length;
+      const count = customers?.filter((c) => {
+        const created = new Date(c.createdAt)
+        return created >= start && created <= end
+      }).length
 
       data.push({
-        date: day.toLocaleDateString(),
+        date: day.toLocaleDateString("en-US", { month: "short", day: "numeric" }),
         count,
-      });
+      })
     }
 
-    return data;
+    return data
   }
 
-  const CustomerSparkline = ({ data }: { data: any[] }) => {
-    return (
-      <ResponsiveContainer width="100%" height={300}>
-        <LineChart data={data}>
-          <XAxis dataKey="date" />
-          <YAxis />
-          <Tooltip />
-          <Line
-            type="monotone"
-            dataKey="count"
-            stroke="#8B5E34"
-            strokeWidth={2}
-            dot={false}
-          />
-        </LineChart>
-      </ResponsiveContainer>
-    )
-  }
-
-  const chartData = [
-    { date: "Mon", sales: 400, orders: 24 },
-    { date: "Tue", sales: 300, orders: 13 },
-    { date: "Wed", sales: 200, orders: 98 },
-    { date: "Thu", sales: 278, orders: 39 },
-    { date: "Fri", sales: 189, orders: 48 },
-    { date: "Sat", sales: 239, orders: 43 },
-    { date: "Sun", sales: 349, orders: 65 },
-  ];
+  const chartData = salesReport?.salesData?.slice(0, 7).map((item: any) => ({
+    date: new Date(item.date).toLocaleDateString("en-US", { weekday: "short" }),
+    sales: item.total / 100,
+    orders: 1,
+  })) || [
+    { date: "Mon", sales: 0, orders: 0 },
+    { date: "Tue", sales: 0, orders: 0 },
+    { date: "Wed", sales: 0, orders: 0 },
+    { date: "Thu", sales: 0, orders: 0 },
+    { date: "Fri", sales: 0, orders: 0 },
+    { date: "Sat", sales: 0, orders: 0 },
+    { date: "Sun", sales: 0, orders: 0 },
+  ]
 
   const stats = [
     {
       label: "Total Revenue",
-      value: salesReport?.totalRevenue ? `$${(salesReport.totalRevenue / 100).toFixed(2)}` : "$0",
+      value: salesReport?.metrics?.totalRevenue ? `$${(salesReport.metrics.totalRevenue / 100).toFixed(2)}` : "$0.00",
       change: "+12.5%",
       icon: DollarSign,
-      color: "text-accent",
+      color: "text-green-600",
     },
     {
       label: "Total Orders",
-      value: salesReport?.totalOrders || "0",
+      value: salesReport?.metrics?.totalOrders || "0",
       change: "+8.2%",
       icon: ShoppingCart,
-      color: "text-accent",
+      color: "text-blue-600",
     },
     {
       label: "Total Customers",
@@ -210,31 +194,33 @@ export function Dashboard() {
       change: `${getTrendArrow(growth.rate)} ${growth.rate}%`,
       trendColor: getTrendColor(growth.rate),
       icon: Users,
-      color: "text-accent",
+      color: "text-purple-600",
     },
     {
       label: "Items in Stock",
-      value: inventoryReport?.totalItems || "0",
+      value: inventoryReport?.totalProducts || "0",
       change: "Good",
       icon: Package,
-      color: "text-accent",
+      color: "text-orange-600",
     },
   ]
 
   const custChartData = getDailyCustomerCounts(customersReport, 30)
 
   return (
-    <div className="p-8 space-y-8">
-      <div className="flex items-center justify-between">
+    <div className="p-4 md:p-8 space-y-6 md:space-y-8">
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-foreground">Dashboard</h1>
-          <p className="text-muted-foreground">{`Welcome, ${customer?.firstName} ${customer?.lastName}!`}</p>
+          <h1 className="text-2xl md:text-3xl font-bold text-foreground">Dashboard</h1>
+          <p className="text-muted-foreground">
+            {customer ? `Welcome, ${customer.firstName} ${customer.lastName}!` : "Welcome back!"}
+          </p>
         </div>
-        <div className="flex gap-4">
+        <div className="flex flex-col sm:flex-row gap-3">
           <div>
             <label className="text-sm text-muted-foreground">Date Range</label>
             <Select value={dateRange} onValueChange={setDateRange}>
-              <SelectTrigger className="w-42 mt-1">
+              <SelectTrigger className="w-full sm:w-40 mt-1">
                 <SelectValue placeholder="Select Date Range" />
               </SelectTrigger>
               <SelectContent>
@@ -245,78 +231,67 @@ export function Dashboard() {
               </SelectContent>
             </Select>
           </div>
-          <div>
-            <label className="text-sm text-muted-foreground">Start Date</label>
-            <Input
-              type="date"
-              value={startDate}
-              onChange={(e) => setStartDate(e.target.value)}
-              disabled={dateRange !== "custom"}
-              className={dateRange !== "custom" ? "opacity-50 cursor-not-allowed mt-1" : "mt-1"}
-            />
-          </div>
-          <div>
-            <label className="text-sm text-muted-foreground">End Date</label>
-            <Input
-              type="date"
-              value={endDate}
-              onChange={(e) => setEndDate(e.target.value)}
-              disabled={dateRange !== "custom"}
-              className={dateRange !== "custom" ? "opacity-50 cursor-not-allowed mt-1" : "mt-1"}
-            />
+          <div className="flex gap-3">
+            <div className="flex-1">
+              <label className="text-sm text-muted-foreground">Start Date</label>
+              <Input
+                type="date"
+                value={startDate}
+                onChange={(e) => setStartDate(e.target.value)}
+                disabled={dateRange !== "custom"}
+                className={dateRange !== "custom" ? "opacity-50 cursor-not-allowed mt-1" : "mt-1"}
+              />
+            </div>
+            <div className="flex-1">
+              <label className="text-sm text-muted-foreground">End Date</label>
+              <Input
+                type="date"
+                value={endDate}
+                onChange={(e) => setEndDate(e.target.value)}
+                disabled={dateRange !== "custom"}
+                className={dateRange !== "custom" ? "opacity-50 cursor-not-allowed mt-1" : "mt-1"}
+              />
+            </div>
           </div>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
         {stats.map((stat) => {
           const Icon = stat.icon
           return (
             <Card key={stat.label}>
-              <CardHeader className="pb-3">
-                <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+              <CardHeader className="pb-2 md:pb-3">
+                <CardTitle className="text-xs md:text-sm font-medium text-muted-foreground flex items-center gap-2">
                   <Icon className={`w-4 h-4 ${stat.color}`} />
-                  {stat.label}
+                  <span className="hidden sm:inline">{stat.label}</span>
+                  <span className="sm:hidden">{stat.label.split(" ")[1] || stat.label.split(" ")[0]}</span>
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold text-foreground">{stat.value}</div>
-                <p className={`text-xs ${stat.color} mt-2`}>{stat.change}</p>
+                <div className="text-lg md:text-2xl font-bold text-foreground">{stat.value}</div>
+                <p className={`text-xs ${stat.trendColor || stat.color} mt-1 md:mt-2`}>{stat.change}</p>
               </CardContent>
             </Card>
           )
         })}
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
         <Card>
           <CardHeader>
-            <CardTitle>Customers by Day</CardTitle>
-            <CardDescription>
+            <CardTitle className="text-base md:text-lg">Customers by Day</CardTitle>
+            <CardDescription className="text-xs md:text-sm">
               {startDate} to {endDate}
             </CardDescription>
           </CardHeader>
           <CardContent>
-            {CustomerSparkline({ data: custChartData })}
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Sales over Time</CardTitle>
-            <CardDescription>
-              {startDate} to {endDate}
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <ResponsiveContainer width="100%" height={300}>
-              <LineChart data={chartData}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="date" />
-                <YAxis />
+            <ResponsiveContainer width="100%" height={250}>
+              <LineChart data={custChartData}>
+                <XAxis dataKey="date" tick={{ fontSize: 10 }} />
+                <YAxis tick={{ fontSize: 10 }} />
                 <Tooltip />
-                <Line type="monotone" dataKey="sales" stroke="hsl(var(--accent))" />
+                <Line type="monotone" dataKey="count" stroke="#8B5E34" strokeWidth={2} dot={false} />
               </LineChart>
             </ResponsiveContainer>
           </CardContent>
@@ -324,19 +299,39 @@ export function Dashboard() {
 
         <Card>
           <CardHeader>
-            <CardTitle>Orders by Day</CardTitle>
-            <CardDescription>
+            <CardTitle className="text-base md:text-lg">Sales over Time</CardTitle>
+            <CardDescription className="text-xs md:text-sm">
               {startDate} to {endDate}
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <ResponsiveContainer width="100%" height={300}>
+            <ResponsiveContainer width="100%" height={250}>
+              <LineChart data={chartData}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="date" tick={{ fontSize: 10 }} />
+                <YAxis tick={{ fontSize: 10 }} />
+                <Tooltip />
+                <Line type="monotone" dataKey="sales" stroke="hsl(var(--chart-1))" />
+              </LineChart>
+            </ResponsiveContainer>
+          </CardContent>
+        </Card>
+
+        <Card className="lg:col-span-2">
+          <CardHeader>
+            <CardTitle className="text-base md:text-lg">Orders by Day</CardTitle>
+            <CardDescription className="text-xs md:text-sm">
+              {startDate} to {endDate}
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <ResponsiveContainer width="100%" height={250}>
               <BarChart data={chartData}>
                 <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="date" />
-                <YAxis />
+                <XAxis dataKey="date" tick={{ fontSize: 10 }} />
+                <YAxis tick={{ fontSize: 10 }} />
                 <Tooltip />
-                <Bar dataKey="orders" fill="hsl(var(--accent))" />
+                <Bar dataKey="sales" fill="hsl(var(--chart-2))" />
               </BarChart>
             </ResponsiveContainer>
           </CardContent>

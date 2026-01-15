@@ -1,224 +1,436 @@
 "use client"
 
-import { useState } from "react"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { useState, useEffect, Fragment } from "react"
+import Image from "next/image"
+import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
-import { AlertCircle, Edit2, Plus } from "lucide-react"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
+  DialogFooter,
 } from "@/components/ui/dialog"
+import {
+  Edit2,
+  Plus,
+  RefreshCw,
+  Package,
+  ChevronDown,
+  ChevronRight,
+  ArrowUpDown,
+} from "lucide-react"
 import apiClient from "@/lib/api-client"
+import type { Inventory, Product } from "@/types"
+
+/* -------------------------------------------------------------------------- */
+/* TYPES                                                                      */
+/* -------------------------------------------------------------------------- */
+
+interface InventoryItem extends Inventory {
+  productId: Product
+}
+
+type SortKey = "name" | "category" | "sku" | "quantity" | "available"
+
+/* -------------------------------------------------------------------------- */
+/* COMPONENT                                                                  */
+/* -------------------------------------------------------------------------- */
 
 export function InventoryManagement() {
+  const [inventory, setInventory] = useState<InventoryItem[]>([])
+  const [products, setProducts] = useState<Product[]>([])
+  const [loading, setLoading] = useState(false)
+
   const [searchTerm, setSearchTerm] = useState("")
-  const [isAddModalOpen, setIsAddModalOpen] = useState(false)
-  const [formData, setFormData] = useState({
+  const [statusFilter, setStatusFilter] = useState("all")
+
+  const [collapsed, setCollapsed] = useState<Record<string, boolean>>({})
+  const [selected, setSelected] = useState<Record<string, boolean>>({})
+
+  const [sortKey, setSortKey] = useState<SortKey>("name")
+  const [sortDir, setSortDir] = useState<"asc" | "desc">("asc")
+
+  /* ----------------------------- ADD / EDIT ----------------------------- */
+
+  const [addOpen, setAddOpen] = useState(false)
+  const [editOpen, setEditOpen] = useState(false)
+  const [activeItem, setActiveItem] = useState<InventoryItem | null>(null)
+
+  const [form, setForm] = useState({
+    productId: "",
     sku: "",
+    size: "",
+    color: "",
     quantity: "",
-    reorderLevel: "",
+    restockThreshold: "10",
   })
-  const [inventory, setInventory] = useState([
-    {
-      id: 1,
-      name: "Premium Linen Shirt",
-      color: "Natural",
-      size: "M",
-      quantity: 45,
-      reorderLevel: 20,
-      status: "in-stock",
-    },
-    {
-      id: 2,
-      name: "Premium Linen Shirt",
-      color: "Sage",
-      size: "L",
-      quantity: 12,
-      reorderLevel: 20,
-      status: "low-stock",
-    },
-    {
-      id: 3,
-      name: "High-Waist Trousers",
-      color: "Black",
-      size: "S",
-      quantity: 3,
-      reorderLevel: 15,
-      status: "critical",
-    },
-    {
-      id: 4,
-      name: "High-Waist Trousers",
-      color: "Navy",
-      size: "M",
-      quantity: 28,
-      reorderLevel: 20,
-      status: "in-stock",
-    },
-    {
-      id: 5,
-      name: "Matching Set - Honey",
-      color: "Honey",
-      size: "XS",
-      quantity: 8,
-      reorderLevel: 10,
-      status: "low-stock",
-    },
-  ])
 
-  const statusColors = {
-    "in-stock": "bg-green-100 text-green-800",
-    "low-stock": "bg-yellow-100 text-yellow-800",
-    critical: "bg-red-100 text-red-800",
-  }
+  /* -------------------------------------------------------------------------- */
+  /* DATA                                                                       */
+  /* -------------------------------------------------------------------------- */
 
-  const filteredInventory = inventory.filter(
-    (item) =>
-      item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      item.color.toLowerCase().includes(searchTerm.toLowerCase()),
-  )
-
-  const handleAddProduct = async () => {
+  const fetchData = async () => {
+    setLoading(true)
     try {
-      const newProduct = {
-        ...formData,
-        quantity: Number.parseInt(formData.quantity),
-        reorderLevel: Number.parseInt(formData.reorderLevel),
-      }
-      await apiClient.post("/products", newProduct)
-      setFormData({
-        sku: "",
-        quantity: "",
-        reorderLevel: "",
-      })
-      setIsAddModalOpen(false)
-    } catch (error) {
-      console.error("Error adding product:", error)
+      const [invRes, prodRes] = await Promise.all([
+        apiClient.get("/admin/inventory"),
+        apiClient.get("/products"),
+      ])
+      setInventory(invRes.data)
+      setProducts(prodRes.data)
+      setSelected({})
+    } finally {
+      setLoading(false)
     }
   }
 
+  useEffect(() => {
+    fetchData()
+  }, [])
+
+  /* -------------------------------------------------------------------------- */
+  /* HELPERS                                                                    */
+  /* -------------------------------------------------------------------------- */
+
+  const getStatus = (item: InventoryItem) => {
+    const available = item.quantity - item.reserved
+    if (available <= 0) return "out-of-stock"
+    if (available <= item.restockThreshold / 2) return "critical"
+    if (available <= item.restockThreshold) return "low-stock"
+    return "in-stock"
+  }
+
+  const statusColors: Record<string, string> = {
+    "in-stock": "bg-green-100 text-green-800",
+    "low-stock": "bg-yellow-100 text-yellow-800",
+    critical: "bg-red-100 text-red-800",
+    "out-of-stock": "bg-gray-100 text-gray-800",
+  }
+
+  /* -------------------------------------------------------------------------- */
+  /* FILTER + SORT                                                              */
+  /* -------------------------------------------------------------------------- */
+
+  const filtered = inventory.filter((item) => {
+    const status = getStatus(item)
+    if (statusFilter !== "all" && status !== statusFilter) return false
+    if (!searchTerm) return true
+
+    const s = searchTerm.toLowerCase()
+    return (
+      item.productId.name.toLowerCase().includes(s) ||
+      item.productId.category?.toLowerCase().includes(s) ||
+      item.sku?.toLowerCase().includes(s) ||
+      item.size?.toLowerCase().includes(s) ||
+      item.color?.toLowerCase().includes(s)
+    )
+  })
+
+  const sorted = [...filtered].sort((a, b) => {
+    let av: any
+    let bv: any
+
+    switch (sortKey) {
+      case "name":
+        av = a.productId.name
+        bv = b.productId.name
+        break
+      case "category":
+        av = a.productId.category
+        bv = b.productId.category
+        break
+      case "sku":
+        av = a.sku
+        bv = b.sku
+        break
+      case "quantity":
+        av = a.quantity
+        bv = b.quantity
+        break
+      case "available":
+        av = a.quantity - a.reserved
+        bv = b.quantity - b.reserved
+        break
+    }
+
+    if (av < bv) return sortDir === "asc" ? -1 : 1
+    if (av > bv) return sortDir === "asc" ? 1 : -1
+    return 0
+  })
+
+  const grouped = sorted.reduce((acc, item) => {
+    const id = item.productId._id
+    if (!acc[id]) acc[id] = { product: item.productId, items: [] }
+    acc[id].items.push(item)
+    return acc
+  }, {} as Record<string, { product: Product; items: InventoryItem[] }>)
+
+  const toggleSort = (key: SortKey) => {
+    if (sortKey === key) setSortDir((d) => (d === "asc" ? "desc" : "asc"))
+    else {
+      setSortKey(key)
+      setSortDir("asc")
+    }
+  }
+
+  /* -------------------------------------------------------------------------- */
+  /* ACTIONS                                                                    */
+  /* -------------------------------------------------------------------------- */
+
+  const openEdit = (item: InventoryItem) => {
+    setActiveItem(item)
+    setForm({
+      productId: item.productId._id,
+      sku: item.sku,
+      size: item.size,
+      color: item.color,
+      quantity: item.quantity.toString(),
+      restockThreshold: item.restockThreshold.toString(),
+    })
+    setEditOpen(true)
+  }
+
+  const saveEdit = async () => {
+    if (!activeItem) return
+    await apiClient.put(`/admin/inventory/${activeItem._id}`, {
+      quantity: Number(form.quantity),
+      restockThreshold: Number(form.restockThreshold),
+    })
+    setEditOpen(false)
+    fetchData()
+  }
+
+  const quickRestock = async (item: InventoryItem) => {
+    await apiClient.put(`/admin/inventory/${item._id}/restock`, { quantity: 1 })
+    fetchData()
+  }
+
+  const addInventory = async () => {
+    await apiClient.post("/admin/inventory", {
+      ...form,
+      quantity: Number(form.quantity),
+      restockThreshold: Number(form.restockThreshold),
+    })
+    setAddOpen(false)
+    fetchData()
+  }
+
+  /* -------------------------------------------------------------------------- */
+  /* UI                                                                         */
+  /* -------------------------------------------------------------------------- */
+
   return (
-    <div className="p-8 space-y-8">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-foreground">Inventory</h1>
-          <p className="text-muted-foreground">Track and manage product stock levels</p>
-        </div>
-        <Dialog open={isAddModalOpen} onOpenChange={setIsAddModalOpen}>
-          <DialogTrigger asChild>
-            <Button className="bg-primary text-primary-foreground hover:bg-primary/90 gap-2">
-              <Plus className="w-4 h-4" />
-              Add Product
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="sm:max-w-md">
-            <DialogHeader>
-              <DialogTitle>Add New Product</DialogTitle>
-              <DialogDescription>Add a new product variant to your inventory</DialogDescription>
-            </DialogHeader>
-            <div className="space-y-4">
-              <div>
-                <label className="text-sm font-medium">SKU</label>
-                <Input
-                  value={formData.sku}
-                  onChange={(e) => setFormData({ ...formData, sku: e.target.value })}
-                  placeholder="e.g., LINEN-SHIRT-001"
-                />
-              </div>
-              <div>
-                <label className="text-sm font-medium">Quantity</label>
-                <Input
-                  type="number"
-                  value={formData.quantity}
-                  onChange={(e) => setFormData({ ...formData, quantity: e.target.value })}
-                  placeholder="0"
-                />
-              </div>
-              <div>
-                <label className="text-sm font-medium">Reorder Level</label>
-                <Input
-                  type="number"
-                  value={formData.reorderLevel}
-                  onChange={(e) => setFormData({ ...formData, reorderLevel: e.target.value })}
-                  placeholder="0"
-                />
-              </div>
-              <Button onClick={handleAddProduct} className="w-full">
-                Add Product
-              </Button>
-            </div>
-          </DialogContent>
-        </Dialog>
-      </div>
+    <div className="p-4 space-y-6">
+      <div className="flex justify-between items-center">
+        <h1 className="text-3xl font-bold">Inventory</h1>
 
-      {/* Alert */}
-      <div className="bg-red-50 border border-red-200 rounded-lg p-4 flex gap-3">
-        <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
-        <div>
-          <p className="font-semibold text-red-900">3 items need reordering</p>
-          <p className="text-sm text-red-800">Please review critical and low-stock items</p>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={fetchData} disabled={loading}>
+            <RefreshCw className={`w-4 h-4 mr-2 ${loading ? "animate-spin" : ""}`} />
+            Refresh
+          </Button>
+          <Button onClick={() => {
+            setForm({
+              productId: "",
+              sku: "",
+              size: "",
+              color: "",
+              quantity: "",
+              restockThreshold: "10",
+            })
+            setAddOpen(true)
+          }}>
+            <Plus className="w-4 h-4 mr-2" />
+            Add Inventory
+          </Button>
         </div>
       </div>
 
-      {/* Search */}
-      <Input
-        placeholder="Search by product name or color..."
-        value={searchTerm}
-        onChange={(e) => setSearchTerm(e.target.value)}
-        className="max-w-md"
-      />
+      <div className="flex gap-3 flex-wrap">
+        <Input
+          placeholder="Search name, SKU, category…"
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          className="max-w-sm"
+        />
+        <Select value={statusFilter} onValueChange={setStatusFilter}>
+          <SelectTrigger className="w-40">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {["all", "in-stock", "low-stock", "critical", "out-of-stock"].map(
+              (s) => (
+                <SelectItem key={s} value={s}>
+                  {s.replace("-", " ")}
+                </SelectItem>
+              ),
+            )}
+          </SelectContent>
+        </Select>
+      </div>
 
-      {/* Inventory Table */}
+      {/* TABLE (UNCHANGED UI) */}
       <Card>
-        <CardHeader>
-          <CardTitle>Stock Levels</CardTitle>
-          <CardDescription>Showing {filteredInventory.length} items</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-border">
-                  <th className="text-left py-3 px-4 font-semibold text-foreground">Product</th>
-                  <th className="text-left py-3 px-4 font-semibold text-foreground">Color</th>
-                  <th className="text-left py-3 px-4 font-semibold text-foreground">Size</th>
-                  <th className="text-left py-3 px-4 font-semibold text-foreground">Quantity</th>
-                  <th className="text-left py-3 px-4 font-semibold text-foreground">Reorder Level</th>
-                  <th className="text-left py-3 px-4 font-semibold text-foreground">Status</th>
-                  <th className="text-left py-3 px-4 font-semibold text-foreground">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredInventory.map((item) => (
-                  <tr key={item.id} className="border-b border-border hover:bg-muted/50 transition-colors">
-                    <td className="py-3 px-4 font-medium text-foreground">{item.name}</td>
-                    <td className="py-3 px-4 text-muted-foreground">{item.color}</td>
-                    <td className="py-3 px-4 text-muted-foreground">{item.size}</td>
-                    <td className="py-3 px-4 font-semibold text-foreground">{item.quantity}</td>
-                    <td className="py-3 px-4 text-muted-foreground">{item.reorderLevel}</td>
-                    <td className="py-3 px-4">
-                      <Badge className={statusColors[item.status as keyof typeof statusColors]}>
-                        {item.status.replace("-", " ")}
-                      </Badge>
+        <CardContent className="p-0 overflow-x-auto">
+          <table className="w-full text-sm min-w-[1100px]">
+            <thead className="sticky top-0 bg-background border-b z-10">
+              <tr>
+                <th className="w-10" />
+                <th className="w-10" />
+                <th className="w-12" />
+                <th onClick={() => toggleSort("name")} className="cursor-pointer">
+                  Item <ArrowUpDown className="inline w-3 h-3 ml-1" />
+                </th>
+                <th onClick={() => toggleSort("category")} className="cursor-pointer">
+                  Category <ArrowUpDown className="inline w-3 h-3 ml-1" />
+                </th>
+                <th onClick={() => toggleSort("sku")} className="cursor-pointer">
+                  SKU <ArrowUpDown className="inline w-3 h-3 ml-1" />
+                </th>
+                <th>Size</th>
+                <th>Color</th>
+                <th onClick={() => toggleSort("quantity")} className="cursor-pointer">
+                  Stock <ArrowUpDown className="inline w-3 h-3 ml-1" />
+                </th>
+                <th onClick={() => toggleSort("available")} className="cursor-pointer">
+                  Available <ArrowUpDown className="inline w-3 h-3 ml-1" />
+                </th>
+                <th>Status</th>
+                <th />
+              </tr>
+            </thead>
+
+            <tbody>
+              {Object.values(grouped).map(({ product, items }) => (
+                <Fragment key={product._id}>
+                  <tr className="bg-muted/40 font-medium">
+                    <td />
+                    <td>
+                      <button onClick={() =>
+                        setCollapsed(c => ({ ...c, [product._id]: !c[product._id] }))
+                      }>
+                        {collapsed[product._id] ? (
+                          <ChevronRight className="w-4 h-4" />
+                        ) : (
+                          <ChevronDown className="w-4 h-4" />
+                        )}
+                      </button>
                     </td>
-                    <td className="py-3 px-4">
-                      <Button variant="ghost" size="sm" className="gap-2">
-                        <Edit2 className="w-4 h-4" />
-                      </Button>
+                    <td>
+                      <Image
+                        src={product.images?.[0]?.url || "/placeholder.svg"}
+                        alt={product.name}
+                        width={36}
+                        height={36}
+                        className="rounded"
+                      />
                     </td>
+                    <td>{product.name}</td>
+                    <td>{product.category}</td>
+                    <td colSpan={2}>{items.length} variants</td>
+                    <td />
+                    <td className="font-semibold">
+                      {items.reduce((s, i) => s + i.quantity, 0)}
+                    </td>
+                    <td />
+                    <td />
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+
+                  {!collapsed[product._id] &&
+                    items.map((item) => {
+                      const status = getStatus(item)
+                      return (
+                        <tr key={item._id} className="border-b">
+                          <td />
+                          <td />
+                          <td />
+                          <td />
+                          <td />
+                          <td>{item.sku || '-'}</td>
+                          <td>{item.size}</td>
+                          <td>{item.color}</td>
+                          <td>{item.quantity}</td>
+                          <td>{item.quantity - item.reserved}</td>
+                          <td>
+                            <Badge className={statusColors[status]}>
+                              {status.replace("-", " ")}
+                            </Badge>
+                          </td>
+                          <td className="flex gap-2">
+                            <Button size="sm" variant="ghost" onClick={() => openEdit(item)}>
+                              <Edit2 className="w-4 h-4" />
+                            </Button>
+                            <Button size="sm" variant="ghost" onClick={() => quickRestock(item)}>
+                              <Package className="w-4 h-4" />
+                            </Button>
+                          </td>
+                        </tr>
+                      )
+                    })}
+                </Fragment>
+              ))}
+            </tbody>
+          </table>
         </CardContent>
       </Card>
+
+      {/* ADD INVENTORY */}
+      <Dialog open={addOpen} onOpenChange={setAddOpen}>
+        <DialogContent className="max-w-md w-full">
+          <DialogHeader>
+            <DialogTitle>Add Inventory</DialogTitle>
+          </DialogHeader>
+
+          <Select value={form.productId} onValueChange={(v) => setForm({ ...form, productId: v })}>
+            <SelectTrigger>
+              <SelectValue placeholder="Product" />
+            </SelectTrigger>
+            <SelectContent>
+              {products.map((p) => (
+                <SelectItem key={p._id} value={p._id}>
+                  {p.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          <Input placeholder="SKU" value={form.sku} onChange={(e) => setForm({ ...form, sku: e.target.value })} />
+          <Input placeholder="Size" value={form.size} onChange={(e) => setForm({ ...form, size: e.target.value })} />
+          <Input placeholder="Color" value={form.color} onChange={(e) => setForm({ ...form, color: e.target.value })} />
+          <Input type="number" placeholder="Quantity" value={form.quantity} onChange={(e) => setForm({ ...form, quantity: e.target.value })} />
+          <Input type="number" placeholder="Restock Threshold" value={form.restockThreshold} onChange={(e) => setForm({ ...form, restockThreshold: e.target.value })} />
+
+          <DialogFooter>
+            <Button onClick={addInventory}>Add</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* EDIT INVENTORY */}
+      <Dialog open={editOpen} onOpenChange={setEditOpen}>
+        <DialogContent className="max-w-md w-full">
+          <DialogHeader>
+            <DialogTitle>Edit Inventory</DialogTitle>
+          </DialogHeader>
+
+          <Input type="number" value={form.quantity} onChange={(e) => setForm({ ...form, quantity: e.target.value })} />
+          <Input type="number" value={form.restockThreshold} onChange={(e) => setForm({ ...form, restockThreshold: e.target.value })} />
+
+          <DialogFooter>
+            <Button onClick={saveEdit}>Save</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

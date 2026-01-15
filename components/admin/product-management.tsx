@@ -12,10 +12,14 @@ import {
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
-import { Plus, Edit2, Trash2, Search } from "lucide-react"
+import { Plus, Edit2, Trash2, Search, RefreshCw } from "lucide-react"
 import { ProductForm } from "./product-form"
-import { Product } from "@/types"
+import { Inventory, Product } from "@/types"
 import apiClient from "@/lib/api-client"
+
+interface InventoryItem extends Inventory {
+  productId: Product
+}
 
 export function ProductManagement() {
   const [searchTerm, setSearchTerm] = useState("")
@@ -23,7 +27,7 @@ export function ProductManagement() {
   const [saleItems, setSaleItems] = useState<Product[]>([])
   const [category, setCategory] = useState<string>("all")
   const [loading, setLoading] = useState(false)
-
+  const [inventory, setInventory] = useState<InventoryItem[]>([])
   const [isFormOpen, setIsFormOpen] = useState(false)
   const [editingProduct, setEditingProduct] = useState<Product | null>(null)
 
@@ -34,13 +38,15 @@ export function ProductManagement() {
     const fetchProducts = async () => {
       setLoading(true)
       try {
-        const response = await apiClient.get("/products", {
+        const response = await apiClient.get("/admin/products", {
           params: {
             ...(category !== "all" && category !== "sale" && { category }),
             ...(searchTerm && { search: searchTerm }),
           },
         })
         setProducts(response.data)
+        const res = await apiClient.get("/admin/inventory")
+        setInventory(res.data)
       } catch (error) {
         console.error("Error fetching products:", error)
       } finally {
@@ -50,6 +56,23 @@ export function ProductManagement() {
 
     fetchProducts()
   }, [category, searchTerm])
+
+  const loadProducts = async () => {
+    setLoading(true)
+    try {
+      const response = await apiClient.get("/admin/products", {
+        params: {
+          ...(category !== "all" && category !== "sale" && { category }),
+          ...(searchTerm && { search: searchTerm }),
+        },
+      })
+      setProducts(response.data)
+    } catch (error) {
+      console.error("Error fetching products:", error)
+    } finally {
+      setLoading(false)
+    }
+  }
 
   useEffect(() => {
     const fetchSaleProducts = async () => {
@@ -85,8 +108,6 @@ export function ProductManagement() {
     )
   })
 
-  console.log(products.map(p => p.sku))
-
 
   /* ----------------------------------
      Delete product (instant update)
@@ -95,7 +116,7 @@ export function ProductManagement() {
     if (!confirm("Are you sure you want to delete this product?")) return
 
     try {
-      await apiClient.delete(`/products/${productId}`)
+      await apiClient.delete(`/admin/products/${productId}`)
 
       // Instantly update UI
       setProducts((prev) => prev.filter((p) => p._id !== productId))
@@ -129,6 +150,7 @@ export function ProductManagement() {
       setSaleItems((prev) => prev.filter((p) => p._id !== updated._id))
     }
   }
+
 
   return (
     <div className="p-8 space-y-8">
@@ -179,6 +201,10 @@ export function ProductManagement() {
             <SelectItem value="sale">Sale</SelectItem>
           </SelectContent>
         </Select>
+        <Button variant="outline" onClick={loadProducts} disabled={loading}>
+          <RefreshCw className={`w-4 h-4 mr-2 ${loading ? "animate-spin" : ""}`} />
+          Refresh
+        </Button>
       </div>
 
       {/* Products Grid */}
@@ -211,9 +237,12 @@ export function ProductManagement() {
                   </Badge>
                   {product.isSale && <Badge className="text-xs">Sale</Badge>}
                   <p className="ml-1 text-sm text-muted-foreground">
-                  <strong>SKU#:</strong>{" "}
-                  {product.sku}
-                </p>
+                    <strong>In stock:</strong>{" "}
+                    {product.sizes
+                      ?.filter((s) => s.stock > 0)
+                      .map((s) => s.size)
+                      .join(", ") || "None"}
+                  </p>
                 </div>
               </CardHeader>
 

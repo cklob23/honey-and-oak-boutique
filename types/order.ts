@@ -1,18 +1,4 @@
-export type PaymentMethod =
-  | "card"
-  | "cash_app"
-  | "affirm"
-  | "apple_pay"
-  | "google_pay"
-  | "shop_pay"
-  | "gift_card"
-
-export type OrderStatus =
-  | "pending"
-  | "processing"
-  | "shipped"
-  | "delivered"
-  | "cancelled"
+import { Customer } from "."
 
 export interface OrderItem {
   productId: string
@@ -23,7 +9,7 @@ export interface OrderItem {
   color?: string
 }
 
-export interface OrderShippingAddress {
+export interface ShippingAddress {
   name?: string
   street?: string
   city?: string
@@ -32,10 +18,13 @@ export interface OrderShippingAddress {
   country?: string
 }
 
+export type OrderStatus = "pending" | "processing" | "shipped" | "delivered" | "cancelled"
+export type PaymentMethod = "card" | "cash_app" | "affirm" | "apple_pay" | "google_pay" | "shop_pay" | "gift_card"
+
 export interface Order {
-  _id?: string
+  _id: string
   squareOrderId?: string
-  customerId: string
+  customerId: Customer | string
   items: OrderItem[]
   subtotal: number
   tax: number
@@ -44,11 +33,11 @@ export interface Order {
   discountCode?: string
   discountAmount?: number
   giftCardUsed?: number
-  paymentMethod?: PaymentMethod
+  paymentMethod: PaymentMethod
   status: OrderStatus
-  shippingAddress?: OrderShippingAddress
+  shippingAddress?: ShippingAddress
   trackingNumber?: string
   notes?: string
-  createdAt: Date
-  updatedAt: Date
+  createdAt: string
+  updatedAt: string
 }

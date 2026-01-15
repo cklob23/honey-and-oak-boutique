@@ -25,7 +25,6 @@ export function ProductForm({ product, onClose, onSuccess }: ProductFormProps) {
   const isEdit = Boolean(product)
 
   const [formData, setFormData] = useState(() => ({
-    sku: product?.sku || "",
     name: product?.name || "",
     description: product?.description || "",
     category: product?.category || "tops",
@@ -41,10 +40,10 @@ export function ProductForm({ product, onClose, onSuccess }: ProductFormProps) {
       product?.colors?.map((c: string) => ({ name: c, hex: "#000000" })) ||
       [{ name: "", hex: "#000000" }],
     sizes: product?.sizes || [
-      { size: "S", stock: 0 },
-      { size: "M", stock: 0 },
-      { size: "L", stock: 0 },
-      { size: "XL", stock: 0 },
+      { size: "S", stock: 0, sku: "" },
+      { size: "M", stock: 0, sku: "" },
+      { size: "L", stock: 0, sku: "" },
+      { size: "XL", stock: 0, sku: "" },
     ],
   }))
 
@@ -158,12 +157,6 @@ export function ProductForm({ product, onClose, onSuccess }: ProductFormProps) {
 
             {/* Material */}
             <div className="grid grid-cols-2 gap-4">
-              <Input
-                placeholder="SKU#"
-                value={formData.sku}
-                onChange={(e) => updateField("sku", e.target.value)}
-                required
-              />
               <Input
                 placeholder="Material (e.g. Linen)"
                 value={formData.material}
@@ -285,6 +278,16 @@ export function ProductForm({ product, onClose, onSuccess }: ProductFormProps) {
                       const sizes = [...formData.sizes]
                       sizes[i].stock = Number(e.target.value)
                       updateField("sizes", sizes)
+                    }}
+                  />
+                  <Input
+                    type="string"
+                    placeholder="SKU#"
+                    value={s.sku}
+                    onChange={(e) => {
+                      const sizes = [...formData.sizes]
+                      sizes[i].sku = e.target.value
+                      updateField("sku", sizes)
                     }}
                   />
                 </div>

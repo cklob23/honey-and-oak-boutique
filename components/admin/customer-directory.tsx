@@ -42,6 +42,7 @@ import {
   RotateCw,
   Trash2,
   Tag,
+  RefreshCw,
 } from "lucide-react";
 
 import apiClient from "@/lib/api-client";
@@ -215,9 +216,9 @@ export function CustomerDirectory() {
             <SelectItem value="OLDEST">Oldest</SelectItem>
           </SelectContent>
         </Select>
-
-        <Button size="icon" variant="outline" onClick={loadInitial}>
-          <RotateCw className="w-4 h-4" />
+        <Button variant="outline" onClick={loadInitial} disabled={loading}>
+          <RefreshCw className={`w-4 h-4 mr-2 ${loading ? "animate-spin" : ""}`} />
+          Refresh
         </Button>
       </div>
 
