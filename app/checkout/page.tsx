@@ -39,7 +39,7 @@ export default function CheckoutPage() {
 
   const subtotal = cartItems.reduce((sum, item) => sum + item.price * item.quantity, 0)
   const [shipping, setShipping] = useState(subtotal > 100 ? 0 : 10)
-  const tax = subtotal * 0.07
+  const tax = subtotal * 0.0775
   const total = subtotal + shipping + tax
 
 
