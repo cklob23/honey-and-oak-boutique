@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input"
 import Link from "next/link"
 import { useCart } from "@/context/cart-context"
 import apiClient from "@/lib/api-client"
-import { Cart, CartItem } from "@/types"
+import { Cart, CartItem, Customer } from "@/types"
 import { ExpressCheckoutElement, useElements, useStripe } from "@stripe/react-stripe-js"
 import { Elements } from "@stripe/react-stripe-js"
 import { stripePromise } from "@/lib/stripe"
@@ -22,6 +22,7 @@ export function CartSidebar({ isOpen, onClose }: CartSidebarProps) {
     const { cartCount, refreshCart } = useCart()
     const cartId = typeof window !== "undefined" ? localStorage.getItem("cartId") : null
     const [customerId, setCustomerId] = useState<string | null>(null)
+    const [customer, setCustomer] = useState<Customer | null>(null)
     const [cartItems, setCartItems] = useState<CartItem[]>([])
     const [cart, setCart] = useState<Cart[]>([])
     const [loading, setLoading] = useState(false)
@@ -60,10 +61,10 @@ export function CartSidebar({ isOpen, onClose }: CartSidebarProps) {
     useEffect(() => {
         const id = localStorage.getItem("customerId")
         if (id) {
-            setCustomerId(id)
+            apiClient.get(`/customers/${id}`).then(res => setCustomer(res.data))
         }
+        setCustomerId(id)
     }, [])
-
     // Load cart
     useEffect(() => {
         if (!cartId) return
@@ -108,7 +109,7 @@ export function CartSidebar({ isOpen, onClose }: CartSidebarProps) {
         const createCheckoutIntent = async () => {
             try {
                 const response = await apiClient.post("/checkout/preview", {
-                    cartId, totalCents
+                    cartId, email: customer?.email || null
                 })
 
                 setClientSecret(response.data.clientSecret)
