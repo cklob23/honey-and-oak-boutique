@@ -1,3 +1,5 @@
+"use client"
+
 import apiClient from "@/lib/api-client";
 import React, { useState, useEffect } from "react";
 
