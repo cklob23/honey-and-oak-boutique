@@ -65,6 +65,7 @@
     "react-hook-form": "^7.60.0",
     "react-is": "^19.2.0",
     "react-resizable-panels": "^2.1.7",
+    "react-square-web-payments-sdk": "^3.3.0",
     "recharts": "latest",
     "sonner": "^1.7.4",
     "square": "latest",

@@ -8,11 +8,11 @@ import { Button } from "@/components/ui/button"
 import { Heart, ShoppingBag, Truck, RotateCcw } from "lucide-react"
 import Link from "next/link"
 import apiClient from "@/lib/api-client"
-import { Product } from "@/types/product"
+import type { Product } from "@/types/product"
 import { useCart } from "@/context/cart-context"
 import { CartSidebar } from "@/components/cart-sidebar"
 import { toast } from "sonner"
-
+import { PaymentForm, ApplePay } from "react-square-web-payments-sdk"
 
 export default function ProductPage() {
   const params = useParams()
@@ -27,10 +27,11 @@ export default function ProductPage() {
   const [selectedColor, setSelectedColor] = useState("")
   const [showSizeChart, setShowSizeChart] = useState(false)
   const [isCartOpen, setIsCartOpen] = useState(false)
+  const [processingApplePay, setProcessingApplePay] = useState(false)
+  const [applePayError, setApplePayError] = useState<string | null>(null)
   const { refreshCart } = useCart()
 
-  const customerId =
-    typeof window !== "undefined" ? localStorage.getItem("customerId") : null
+  const customerId = typeof window !== "undefined" ? localStorage.getItem("customerId") : null
 
   useEffect(() => {
     if (!id) return
@@ -74,18 +75,18 @@ export default function ProductPage() {
     try {
       if (adding) {
         await apiClient.post(`/customers/${customerId}/favorites`, { productId })
-        setFavorites(prev => [...prev, productId])
+        setFavorites((prev) => [...prev, productId])
       } else {
         await apiClient.delete(`/customers/${customerId}/favorites/${productId}`)
-        setFavorites(prev => prev.filter(f => f !== productId))
+        setFavorites((prev) => prev.filter((f) => f !== productId))
       }
     } catch (err) {
       console.error("Favorite update failed:", err)
-      setIsFavorite(!adding) // rollback UI
+      setIsFavorite(!adding)
     }
   }
 
-  const handleAddToCart = async (productId: string, quantity: number = 1, size?: string, color?: string) => {
+  const handleAddToCart = async (productId: string, quantity = 1, size?: string, color?: string) => {
     setIsCartOpen(true)
     try {
       let cartId = typeof window !== "undefined" ? localStorage.getItem("cartId") : null
@@ -103,12 +104,10 @@ export default function ProductPage() {
         productId,
         quantity,
         size,
-        color
+        color,
       })
-      //toast.success("Added item to cart successfully!")
       refreshCart()
       return reponse.data
-
     } catch (error: any) {
       console.error("Add to cart failed:", error)
       toast.error("Failed to add item to cart.")
@@ -125,15 +124,75 @@ export default function ProductPage() {
           productId,
           quantity,
           size,
-          color
+          color,
         })
-        // toast.success("Added item to cart successfully!")
         refreshCart()
         return retry.data
       }
 
       throw error
     }
+  }
+
+  const handleApplePayPurchase = async (token: any, buyer?: any) => {
+    if (!product) return
+
+    setProcessingApplePay(true)
+    setApplePayError(null)
+
+    try {
+      // Calculate total for this product
+      const itemTotal = product.price * quantity
+      const taxRate = 0.07
+      const tax = itemTotal * taxRate
+      const shipping = itemTotal > 100 ? 0 : 10
+      const total = itemTotal + shipping + tax
+      const totalCents = Math.round(total * 100)
+
+      const response = await apiClient.post("/checkout/square/direct", {
+        sourceId: token.token,
+        productId: product._id,
+        quantity,
+        size: selectedSize,
+        color: selectedColor,
+        customerId,
+        email: buyer?.email || null,
+        amountCents: totalCents,
+        currency: "USD",
+        paymentMethod: "apple_pay",
+        shippingAddress: buyer?.shippingContact
+          ? {
+            firstName: buyer.shippingContact.givenName,
+            lastName: buyer.shippingContact.familyName,
+            address: buyer.shippingContact.addressLines?.[0],
+            city: buyer.shippingContact.city,
+            state: buyer.shippingContact.state,
+            zipCode: buyer.shippingContact.postalCode,
+            country: buyer.shippingContact.countryCode,
+            phone: buyer.shippingContact.phone,
+          }
+          : null,
+      })
+
+      toast.success("Payment successful!")
+      window.location.href = `/checkout/complete?paymentId=${response.data.paymentId}`
+    } catch (err: any) {
+      console.error("Apple Pay failed:", err)
+      setApplePayError(err.response?.data?.message || "Payment failed. Please try again.")
+      toast.error("Apple Pay payment failed")
+    } finally {
+      setProcessingApplePay(false)
+    }
+  }
+
+  // Calculate product total for Apple Pay
+  const getProductTotal = () => {
+    if (!product) return "0.00"
+    const itemTotal = product.price * quantity
+    const taxRate = 0.07
+    const tax = itemTotal * taxRate
+    const shipping = itemTotal > 100 ? 0 : 10
+    return (itemTotal + shipping + tax).toFixed(2)
   }
 
   if (!product) {
@@ -151,7 +210,6 @@ export default function ProductPage() {
       <Header />
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-
         {/* Breadcrumb */}
         <div className="mb-8">
           <Link href="/shop" className="text-sm text-accent hover:text-accent/80">
@@ -159,9 +217,7 @@ export default function ProductPage() {
           </Link>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
-          {loading && (
-            <p className="text-muted-foreground text-sm">Loading product...</p>
-          )}
+          {loading && <p className="text-muted-foreground text-sm">Loading product...</p>}
           {/* Images */}
           <div className="space-y-4">
             <div className="bg-muted rounded-xl overflow-hidden aspect-[3/4]">
@@ -174,12 +230,9 @@ export default function ProductPage() {
 
             <div className="grid grid-cols-4 gap-2">
               {product.images?.map((image, i) => (
-                <button
-                  key={i}
-                  className="bg-muted rounded-lg overflow-hidden aspect-square hover:ring-2 ring-accent"
-                >
+                <button key={i} className="bg-muted rounded-lg overflow-hidden aspect-square hover:ring-2 ring-accent">
                   <img
-                    src={image.url}
+                    src={image.url || "/placeholder.svg"}
                     className="w-full h-full object-cover"
                     alt={`${product.name} ${i + 1}`}
                   />
@@ -190,22 +243,17 @@ export default function ProductPage() {
 
           {/* Details */}
           <div className="space-y-6">
-
             {/* Title / Rating */}
             <div>
-              <p className="text-xs text-muted-foreground uppercase mb-2">
-                {product.category}
-              </p>
+              <p className="text-xs text-muted-foreground uppercase mb-2">{product.category}</p>
 
-              <h1 className="text-3xl md:text-4xl font-serif font-bold">
-                {product.name}
-              </h1>
+              <h1 className="text-3xl md:text-4xl font-serif font-bold">{product.name}</h1>
 
               {/* Reviews */}
               <div className="flex items-center gap-2 mt-3 mb-4">
                 <div className="flex gap-1">
                   {[...Array(5)].map((_, i) => (
-                    <span key={i}>{i < Math.floor(product.rating) ? "★" : "☆"}</span>
+                    <span key={i}>{i < Math.floor(product.rating!) ? "★" : "☆"}</span>
                   ))}
                 </div>
 
@@ -237,13 +285,11 @@ export default function ProductPage() {
               <div>
                 <label className="text-sm font-semibold">Color</label>
                 <div className="flex gap-3 mt-2">
-                  {product.colors.map(color => (
+                  {product.colors.map((color) => (
                     <button
                       key={color}
                       onClick={() => setSelectedColor(color)}
-                      className={`px-4 py-2 border-2 rounded-lg ${selectedColor === color
-                        ? "border-accent bg-accent/10"
-                        : "border-border hover:border-accent"
+                      className={`px-4 py-2 border-2 rounded-lg ${selectedColor === color ? "border-accent bg-accent/10" : "border-border hover:border-accent"
                         }`}
                     >
                       {color}
@@ -267,26 +313,28 @@ export default function ProductPage() {
               </div>
 
               <div className="grid grid-cols-5 gap-2">
-                {product.category === "accessories" ? (<button
-                  onClick={() => setSelectedSize("L")}
-                  className={`py-2 border-2 rounded-lg ${selectedSize === "L"
-                    ? "border-accent bg-accent/10"
-                    : "border-border hover:border-accent"
-                    }`}
-                >
-                  One Size
-                </button>) : (product.sizes?.map(option => (
+                {product.category === "accessories" ? (
                   <button
-                    key={option._id}
-                    onClick={() => setSelectedSize(option.size)}
-                    className={`py-2 border-2 rounded-lg ${selectedSize === option.size
-                      ? "border-accent bg-accent/10"
-                      : "border-border hover:border-accent"
+                    onClick={() => setSelectedSize("L")}
+                    className={`py-2 border-2 rounded-lg ${selectedSize === "L" ? "border-accent bg-accent/10" : "border-border hover:border-accent"
                       }`}
                   >
-                    {option.size}
-                  </button>)
-                ))}
+                    One Size
+                  </button>
+                ) : (
+                  product.sizes?.map((option, index) => (
+                    <button
+                      key={index}
+                      onClick={() => setSelectedSize(option.size)}
+                      className={`py-2 border-2 rounded-lg ${selectedSize === option.size
+                          ? "border-accent bg-accent/10"
+                          : "border-border hover:border-accent"
+                        }`}
+                    >
+                      {option.size}
+                    </button>
+                  ))
+                )}
               </div>
 
               {/* Size Chart Modal */}
@@ -302,21 +350,19 @@ export default function ProductPage() {
                     </thead>
 
                     <tbody>
-                      {Object.entries(product.sizeChart.measurements).map(
-                        ([size, measurements]) => (
-                          <tr key={size} className="border-t border-border">
-                            <td className="py-2 font-medium">{size}</td>
-                            <td className="py-2">{measurements.bust}</td>
-                            <td className="py-2">{measurements.length}</td>
-                          </tr>
-                        )
-                      )}
+                      {Object.entries(product.sizeChart).map(([size, measurements]) => (
+                        <tr key={size} className="border-t border-border">
+                          <td className="py-2 font-medium">{size}</td>
+                          <td className="py-2">{measurements.bust}</td>
+                          <td className="py-2">{measurements.length}</td>
+                        </tr>
+                      ))}
                     </tbody>
                   </table>
 
                   {product.sizeChart.image && (
                     <img
-                      src={product.sizeChart.image}
+                      src={product.sizeChart.image || "/placeholder.svg"}
                       alt="Size Chart"
                       className="mt-4 w-full rounded-lg"
                     />
@@ -337,9 +383,7 @@ export default function ProductPage() {
                   −
                 </button>
 
-                <span className="text-lg font-semibold w-8 text-center">
-                  {quantity}
-                </span>
+                <span className="text-lg font-semibold w-8 text-center">{quantity}</span>
 
                 <button
                   onClick={() => setQuantity(quantity + 1)}
@@ -351,26 +395,63 @@ export default function ProductPage() {
                 {/* Action Buttons */}
                 <div className="flex flex-1 gap-3">
                   <Button
-                    onClick={() =>
-                      handleAddToCart(
-                        product._id,
-                        quantity,
-                        selectedSize,
-                        selectedColor
-                      )
-                    }
+                    onClick={() => handleAddToCart(product._id, quantity, selectedSize, selectedColor)}
                     className="h-12 flex-1 gap-2"
                   >
                     <ShoppingBag className="w-5 h-5" />
                     Add to Cart
                   </Button>
-                  <Button variant="outline" className="h-12 flex-1 bg-white text-white hover:bg-gray-100 font-semibold transition-colors">
-                    <img
-                      src="/apple-pay.png"
-                      alt="Apple Pay"
-                      className="h-6 w-auto object-contain"
-                    />
-                  </Button>
+
+                  {process.env.NEXT_PUBLIC_SQUARE_APP_ID && process.env.NEXT_PUBLIC_SQUARE_LOCATION_ID ? (
+                    <div className="flex-1">
+                      <PaymentForm
+                        applicationId={process.env.NEXT_PUBLIC_SQUARE_APP_ID}
+                        locationId={process.env.NEXT_PUBLIC_SQUARE_LOCATION_ID}
+                        cardTokenizeResponseReceived={(
+                          token: {
+                            token: string
+                            errors?: any[]
+                          },
+                          buyer?: {
+                            billingContact?: {
+                              email?: string
+                              givenName?: string
+                              familyName?: string
+                            }
+                          }
+                        ) => {
+                          handleApplePayPurchase(token, buyer)
+                        }}
+                        createPaymentRequest={() => ({
+                          countryCode: "US",
+                          currencyCode: "USD",
+                          total: {
+                            amount: getProductTotal(),
+                            label: product.name,
+                          },
+                          lineItems: [
+                            {
+                              label: `${product.name} x ${quantity}`,
+                              amount: (product.price * quantity).toFixed(2),
+                              pending: false,
+                            },
+                          ],
+                          requestShippingContact: true,
+                          requestBillingContact: true,
+                        })}
+                      >
+                        <ApplePay />
+                      </PaymentForm>
+                    </div>
+                  ) : (
+                    <Button
+                      variant="outline"
+                      className="h-12 flex-1 bg-white text-white hover:bg-gray-100 font-semibold transition-colors"
+                      disabled
+                    >
+                      <img src="/apple-pay.png" alt="Apple Pay" className="h-6 w-auto object-contain" />
+                    </Button>
+                  )}
                 </div>
 
                 {/* Favorite */}
@@ -387,6 +468,9 @@ export default function ProductPage() {
                   </button>
                 )}
               </div>
+
+              {applePayError && <p className="text-sm text-destructive mt-2">{applePayError}</p>}
+              {processingApplePay && <p className="text-sm text-muted-foreground mt-2">Processing Apple Pay...</p>}
             </div>
 
             {/* Shipping & Returns */}
@@ -403,13 +487,10 @@ export default function ProductPage() {
                 <RotateCcw className="w-5 h-5 text-accent mt-0.5" />
                 <div>
                   <p className="font-semibold">30-Day Returns</p>
-                  <p className="text-muted-foreground">
-                    Easy returns on all items
-                  </p>
+                  <p className="text-muted-foreground">Easy returns on all items</p>
                 </div>
               </div>
             </div>
-
           </div>
         </div>
       </div>
