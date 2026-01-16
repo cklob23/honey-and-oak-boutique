@@ -72,7 +72,7 @@ export function ProductForm({ product, onClose, onSuccess }: ProductFormProps) {
 
       const res = isEdit
         ? await apiClient.put(`/products/${product?._id}`, payload)
-        : await apiClient.post("/products", payload)
+        : await apiClient.post("/admin/products", payload)
 
       onSuccess(res.data)
       onClose()
