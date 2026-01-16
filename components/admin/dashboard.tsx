@@ -198,13 +198,13 @@ export function Dashboard() {
     },
     {
       label: "Items in Stock",
-      value: inventoryReport?.totalProducts || "0",
+      value: inventoryReport?.totalItems || "0",
       change: "Good",
       icon: Package,
       color: "text-orange-600",
     },
   ]
-
+  console.log(inventoryReport)
   const custChartData = getDailyCustomerCounts(customersReport, 30)
 
   return (
