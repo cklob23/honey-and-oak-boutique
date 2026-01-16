@@ -10,6 +10,9 @@ import apiClient from "@/lib/api-client"
 import type { Cart, CartItem, Customer } from "@/types"
 import { PaymentForm, ApplePay, GooglePay } from "react-square-web-payments-sdk"
 
+const SQUARE_APP_ID = process.env.NEXT_PUBLIC_SQUARE_APP_ID || ""
+const SQUARE_LOCATION_ID = process.env.NEXT_PUBLIC_SQUARE_LOCATION_ID || ""
+
 interface CartSidebarProps {
   isOpen: boolean
   onClose: () => void
@@ -26,6 +29,7 @@ export function CartSidebar({ isOpen, onClose }: CartSidebarProps) {
   const [loading, setLoading] = useState(false)
   const [submitting, setSubmitting] = useState(false)
   const [paymentError, setPaymentError] = useState<string | null>(null)
+  const [mounted, setMounted] = useState(false)
 
   // Update item quantity
   const updateQuantity = async (index: number, quantity: number) => {
@@ -82,6 +86,10 @@ export function CartSidebar({ isOpen, onClose }: CartSidebarProps) {
 
     fetchCart()
   }, [cartId, cartCount])
+
+  useEffect(() => {
+    setMounted(true)
+  }, [])
 
   const subtotal = cartItems.reduce((sum, item) => sum + item.price * item.quantity, 0)
   const taxRate = 0.07
@@ -244,10 +252,10 @@ export function CartSidebar({ isOpen, onClose }: CartSidebarProps) {
                 </Button>
               </Link>
 
-              {isPaymentEligible ? (
+              {mounted && SQUARE_APP_ID && SQUARE_LOCATION_ID && isPaymentEligible ? (
                 <PaymentForm
-                  applicationId={process.env.NEXT_PUBLIC_SQUARE_APP_ID!}
-                  locationId={process.env.NEXT_PUBLIC_SQUARE_LOCATION_ID!}
+                  applicationId={SQUARE_APP_ID}
+                  locationId={SQUARE_LOCATION_ID}
                   cardTokenizeResponseReceived={handlePaymentToken}
                   createPaymentRequest={() => ({
                     countryCode: "US",
@@ -265,9 +273,9 @@ export function CartSidebar({ isOpen, onClose }: CartSidebarProps) {
                     <GooglePay />
                   </div>
                 </PaymentForm>
-              ) : (
+              ) : !isPaymentEligible ? (
                 <p className="text-xs text-muted-foreground text-center">Express checkout available at checkout</p>
-              )}
+              ) : null}
 
               {paymentError && <p className="text-sm text-destructive text-center">{paymentError}</p>}
 
