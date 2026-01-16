@@ -23,7 +23,7 @@ interface ProductFormProps {
 
 export function ProductForm({ product, onClose, onSuccess }: ProductFormProps) {
   const isEdit = Boolean(product)
-
+  console.log(product)
   const [formData, setFormData] = useState(() => ({
     name: product?.name || "",
     description: product?.description || "",
@@ -69,7 +69,7 @@ export function ProductForm({ product, onClose, onSuccess }: ProductFormProps) {
         colors: formData.colors.map(c => c.name).filter(Boolean),
         images: formData.images.filter(img => img.url),
       }
-
+      console.log(payload)
       const res = isEdit
         ? await apiClient.put(`/products/${product?._id}`, payload)
         : await apiClient.post("/admin/products", payload)
@@ -281,13 +281,12 @@ export function ProductForm({ product, onClose, onSuccess }: ProductFormProps) {
                     }}
                   />
                   <Input
-                    type="string"
                     placeholder="SKU#"
                     value={s.sku}
                     onChange={(e) => {
                       const sizes = [...formData.sizes]
-                      sizes[i].sku = e.target.value
-                      updateField("sku", sizes)
+                      sizes[i] = { ...sizes[i], sku: e.target.value }
+                      updateField("sizes", sizes)
                     }}
                   />
                 </div>

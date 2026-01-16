@@ -17,7 +17,7 @@ import {
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet"
 import { Eye, RefreshCw, DollarSign, AlertCircle } from "lucide-react"
 import apiClient from "@/lib/api-client"
-import { Payment, PaymentMethod, PaymentStatus } from "@/types"
+import type { Payment, PaymentStatus, PaymentMethod } from "@/types"
 
 export function PaymentsManagement() {
   const [statusFilter, setStatusFilter] = useState("all")
