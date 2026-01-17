@@ -15,6 +15,7 @@ export function Header() {
   const [accountOpen, setAccountOpen] = useState(false)
   const [clothingOpen, setClothingOpen] = useState(false) // Mobile only
   const [clothingHover, setClothingHover] = useState(false) // Desktop hover
+  const [accessoriesOpen, setAccessoriesOpen] = useState(false)
   const [customerId, setCustomerId] = useState<string | null>(null)
   const [customer, setCustomer] = useState<Customer | null>(null)
 
@@ -102,9 +103,35 @@ export function Header() {
             )}
           </div>
 
-          <Link href="/shop?category=accessories" className="hover:text-accent">
-            Accessories
-          </Link>
+          {/* Accessories Dropdown */}
+          <div
+            className="relative"
+            onMouseEnter={() => setAccessoriesOpen(true)}
+            onMouseLeave={() => setAccessoriesOpen(false)}
+          >
+            <button className="hover:text-accent flex items-center gap-1 transition">
+              Accessories
+              <ChevronDown className={`w-4 h-4 transition-transform ${accessoriesOpen ? "rotate-180" : ""}`} />
+            </button>
+
+            {accessoriesOpen && (
+              <div className="absolute left-0 mr-3 bg-white border shadow-lg rounded-lg py-2 w-40 z-50">
+                <Link
+                  href="/shop?category=hair-accessories"
+                  className="block px-4 py-2 hover:bg-gray-100"
+                >
+                  Hair Accessories
+                </Link>
+                <Link
+                  href="/shop?category=accessories&subcategory=jewelry"
+                  className="block px-4 py-2 hover:bg-gray-100"
+                >
+                  Jewelry
+                </Link>
+              
+              </div>
+            )}
+          </div>
           <Link href="/shop?category=self-care" className="hover:text-accent">
             Self Care
           </Link>
@@ -214,7 +241,34 @@ export function Header() {
             </div>
           )}
 
-          <Link href="/shop?category=accessories" className="block py-2 hover:text-accent">Accessories</Link>
+          {/* Accessories Dropdown */}
+          <div
+            className="relative"
+            onMouseEnter={() => setAccessoriesOpen(true)}
+            onMouseLeave={() => setAccessoriesOpen(false)}
+          >
+            <button className="flex items-center gap-1 text-sm font-medium text-foreground hover:text-[#8B5E3C] transition-colors">
+              Accessories
+              <ChevronDown className={`w-4 h-4 transition-transform ${accessoriesOpen ? "rotate-180" : ""}`} />
+            </button>
+
+            {accessoriesOpen && (
+              <div className="absolute top-full left-0 mt-2 w-48 bg-card border border-border rounded-lg shadow-lg py-2 z-50">
+                <Link
+                  href="/shop?category=hair-accessories"
+                  className="block px-4 py-2.5 text-sm font-medium hover:bg-muted transition-colors"
+                >
+                  Hair Accessories
+                </Link>
+                <Link
+                  href="/shop?category=accessories&subcategory=jewelry"
+                  className="block px-4 py-2.5 text-sm hover:bg-muted transition-colors"
+                >
+                  Jewelry
+                </Link>
+              </div>
+            )}
+          </div>
           <Link href="/shop?category=self-care" className="block py-2 hover:text-accent">Self Care</Link>
           <Link href="/shop?category=sale" className="block py-2 hover:text-accent">Sale</Link>
           {customer?.role === "admin" ? <Link href="/admin" className="hover:text-accent">

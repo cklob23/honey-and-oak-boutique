@@ -212,9 +212,9 @@ export function ProductManagement() {
         {loading ? (
           <p className="text-muted-foreground text-sm">Loading products…</p>
         ) : (
-          filteredProducts.map((product) => (
+          filteredProducts.map((product, index) => (
             <Card
-              key={product._id}
+              key={index}
               className="group flex flex-col h-full bg-card rounded-xl overflow-hidden hover:shadow-lg transitions transition-shadow">
               <div className="relative w-full aspect-[2/3] bg-muted overflow-hidden rounded-lg">
                 <img

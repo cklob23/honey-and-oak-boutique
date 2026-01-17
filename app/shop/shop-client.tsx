@@ -20,6 +20,7 @@ export default function ShopPage() {
   const [saleItems, setSaleItems] = useState<Product[]>([])
   const [category, setCategory] = useState<string>("all")
   const [clothingOpen, setClothingOpen] = useState(true)
+  const [accessoriesOpen, setAccessoriesOpen] = useState(false)
   const [sortBy, setSortBy] = useState<string>("newest")
   const [searchTerm, setSearchTerm] = useState<string>("")
   const [favorites, setFavorites] = useState<string[]>([])
@@ -335,10 +336,41 @@ export default function ShopPage() {
                     ))}
                   </div>
                 )}
+                {/* CLOTHING ACCORDION */}
+                <button
+                  onClick={() => setAccessoriesOpen(!accessoriesOpen)}
+                  className="flex items-center justify-between w-full px-3 py-2 rounded-lg hover:bg-muted transition"
+                >
+                  <span>Accessories</span>
+                  <ChevronDown
+                    size={16}
+                    className={`transition-transform ${accessoriesOpen ? "rotate-180" : ""}`}
+                  />
+                </button>
 
+                {/* SUBCATEGORIES */}
+                {accessoriesOpen && (
+                  <div className="ml-4 space-y-2">
+
+                    {[
+                      { key: "hair-accessories", label: "Hair Accessories" },
+                      { key: "jewelry", label: "Jewelry" },
+                    ].map(({ key, label }) => (
+                      <button
+                        key={key}
+                        onClick={() => setCategory(key)}
+                        className={`block w-full text-left px-3 py-2 rounded-lg transition-colors ${category === key
+                          ? "bg-accent text-accent-foreground"
+                          : "hover:bg-muted"
+                          }`}
+                      >
+                        {label}
+                      </button>
+                    ))}
+                  </div>
+                )}
                 {/* OTHER MAIN CATEGORIES */}
                 {[
-                  { key: "accessories", label: "Accessories" },
                   { key: "self-care", label: "Self Care" },
                   { key: "sale", label: "Sale" },
                 ].map(({ key, label }) => (

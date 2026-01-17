@@ -1,5 +1,4 @@
-// types/product.ts
-
+// Product types matching backend model
 export interface ProductImage {
   url: string
   alt?: string
@@ -9,16 +8,27 @@ export interface ProductImage {
 export interface ProductSize {
   size: string
   stock: number
-  sku: number
+  sku?: string // Added sku field to ProductSize for variant-level SKUs
 }
+
+export type ProductCategory =
+  | "tops"
+  | "bottoms"
+  | "dresses"
+  | "sets"
+  | "accessories"
+  | "hair-accessories"
+  | "jewelry"
+  | "self-care" // Updated category type to include hair-accessories and jewelry sub-categories
 
 export interface Product {
   _id: string
+  sku?: string // Made optional since SKUs are now at size level
   name: string
   description: string
   price: number
   salePrice?: number
-  category: "tops" | "bottoms" | "dresses" | "sets" | "accessories" | "self-care"
+  category: ProductCategory
   images: ProductImage[]
   sizes: ProductSize[]
   colors: string[]
@@ -34,9 +44,4 @@ export interface Product {
   isSale: boolean
   createdAt: string
   updatedAt: string
-}
-
-export interface ProductSizeChart {
-  measurements: Record<string, any>   // e.g. { S: { bust: 34, length: 24 } }
-  image?: string
 }
